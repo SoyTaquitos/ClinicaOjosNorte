@@ -1,0 +1,436 @@
+/* =====================================================
+   Dashboard Home Page — Oftalmología SI1
+   ===================================================== */
+
+/* ── Animaciones ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ── Encabezado ── */
+.pageHeader {
+  margin-bottom: var(--space-6);
+  animation: fadeInUp 0.45s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+.greeting {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-1);
+}
+
+.pageTitle {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.pageDate {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: var(--space-1) 0 0;
+}
+
+/* ── Grid de KPIs ── */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.kpiCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  animation: fadeInUp 0.45s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+.kpiCard:nth-child(1) { animation-delay: 0.05s; }
+.kpiCard:nth-child(2) { animation-delay: 0.10s; }
+.kpiCard:nth-child(3) { animation-delay: 0.15s; }
+.kpiCard:nth-child(4) { animation-delay: 0.20s; }
+
+.kpiCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.kpiTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.kpiIconWrap {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpiTrend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+}
+
+.trendUp {
+  color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.trendNeutral {
+  color: var(--color-info);
+  background: var(--color-info-light);
+}
+
+.kpiValue {
+  font-family: var(--font-heading);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1;
+  margin: 0;
+}
+
+.kpiLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── Grid de dos columnas (tabla + actividad) ── */
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+@media (max-width: 1100px) {
+  .twoCol { grid-template-columns: 1fr; }
+}
+
+/* ── Panel genérico ── */
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  animation: fadeInUp 0.45s cubic-bezier(0.22,1,0.36,1) 0.20s both;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.panelTitle {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.panelAction {
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-fast);
+}
+
+.panelAction:hover { color: var(--color-primary-dark); }
+
+/* ── Tabla de citas ── */
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table thead th {
+  padding: var(--space-3) var(--space-5);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border-light);
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  transition: background var(--transition-fast);
+}
+
+.table tbody tr:hover {
+  background: var(--color-surface-hover);
+}
+
+.table tbody tr + tr {
+  border-top: 1px solid var(--color-border-light);
+}
+
+.table td {
+  padding: var(--space-3) var(--space-5);
+  color: var(--color-text-secondary);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.patientName {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.doctorName {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* ── Badges de estado ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.badgeProgramada {
+  color: var(--color-info);
+  background: var(--color-info-light);
+}
+
+.badgeAtendida {
+  color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.badgeCancelada {
+  color: var(--color-error);
+  background: var(--color-error-light);
+}
+
+.badgePendiente {
+  color: var(--color-warning);
+  background: var(--color-warning-light);
+}
+
+/* ── Feed de actividad reciente ── */
+.activityList {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-3) 0;
+}
+
+.activityItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  transition: background var(--transition-fast);
+}
+
+.activityItem:hover {
+  background: var(--color-surface-hover);
+}
+
+.activityDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.activityBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.activityText {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  margin: 0 0 2px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activitySub {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.activityTime {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Acciones rápidas ── */
+.quickGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-3);
+  animation: fadeInUp 0.45s cubic-bezier(0.22,1,0.36,1) 0.28s both;
+}
+
+.quickCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.quickCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-purple);
+  border-color: var(--color-primary-200);
+}
+
+.quickIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quickLabel {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.quickSub {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ── Sección label ── */
+.sectionLabel {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════ */
+
+/* ── Tablets / Móviles grandes (≤ 768px) ── */
+@media (max-width: 768px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  .quickGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Ocultar columna "Tipo" en la tabla para ganar espacio */
+  .table th:nth-child(3),
+  .table td:nth-child(3) {
+    display: none;
+  }
+}
+
+/* ── Móviles pequeños (≤ 480px) ── */
+@media (max-width: 480px) {
+  .pageTitle    { font-size: var(--text-xl); }
+  .kpiValue     { font-size: var(--text-2xl); }
+
+  /* KPI en 2 columnas compactas */
+  .kpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2);
+  }
+  .kpiCard { padding: var(--space-4); }
+
+  /* Panel: tabla + actividad en 1 columna */
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+
+  /* Acciones rápidas: 2 col */
+  .quickGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2);
+  }
+  .quickCard  { padding: var(--space-3); gap: var(--space-2); }
+  .quickLabel { font-size: var(--text-xs); }
+  .quickSub   { display: none; }
+
+  /* Ocultar columnas adicionales en la tabla */
+  .table th:nth-child(3),
+  .table td:nth-child(3),
+  .table th:nth-child(4),
+  .table td:nth-child(4) {
+    display: none;
+  }
+
+  .table th,
+  .table td {
+    padding: var(--space-2) var(--space-3);
+  }
+}
