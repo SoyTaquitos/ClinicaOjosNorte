@@ -39,7 +39,7 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 # Copiar código fuente
 COPY . .
 
-# Hacer ejecutable el entrypoint
+# Con bind mount `./backend:/app` el script del host puede llegar sin +x; `sh` no lo exige.
 RUN chmod +x entrypoint.sh
 
 # Crear directorios necesarios
@@ -47,5 +47,5 @@ RUN mkdir -p staticfiles media logs static
 
 EXPOSE 8000
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
