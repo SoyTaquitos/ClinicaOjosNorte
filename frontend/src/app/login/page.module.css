@@ -541,20 +541,6 @@
   border-radius: var(--radius-sm);
 }
 
-.devHintNote {
-  font-size: var(--text-xs);
-  color: rgba(255, 255, 255, 0.65);
-  margin: var(--space-3) 0 0;
-  line-height: 1.45;
-}
-
-.devHintNote code {
-  font-size: 0.7rem;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.18);
-}
-
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .rightPanel {

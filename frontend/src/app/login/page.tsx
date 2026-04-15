@@ -243,9 +243,6 @@ export default function LoginPage() {
                 </dd>
               </div>
             </dl>
-            <p className={styles.devHintNote}>
-              Mismas credenciales que crea el seeder <code>seed_admin</code>. Desactiva en producción.
-            </p>
           </aside>
         ) : null}
       </div>
