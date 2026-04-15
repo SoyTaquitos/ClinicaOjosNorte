@@ -1,12 +1,20 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Eye, Lock, Mail, EyeOff, ChevronLeft, Shield, Activity, LayoutDashboard } from 'lucide-react';
 import EyeIllustration from '@/components/EyeIllustration';
+import { browserApiOrigin } from '@/lib/api';
+import { saveTokens } from '@/lib/auth';
+import { getPublicAppName, getPublicAppTagline } from '@/lib/siteConfig';
 import styles from './page.module.css';
 
+const brandName = getPublicAppName() || 'Portal';
+const brandTagline = getPublicAppTagline();
+
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [email,        setEmail]        = useState('');
   const [password,     setPassword]     = useState('');
@@ -24,14 +32,33 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-    /* Simulación de autenticación (reemplazar con llamada real al backend) */
-    await new Promise(r => setTimeout(r, 1400));
-
-    if (email === 'admin@clinica.com' && password === 'admin123') {
-      window.location.href = '/dashboard';
-    } else {
+    try {
+      const origin = browserApiOrigin();
+      const loginUrl = origin ? `${origin}/api/auth/login/` : '/api/auth/login/';
+      const res = await fetch(loginUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login: email.trim(), password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          (data.login && (Array.isArray(data.login) ? data.login[0] : data.login)) ||
+          data.detail ||
+          data.non_field_errors?.[0] ||
+          'Credenciales incorrectas o cuenta no disponible.';
+        setError(typeof msg === 'string' ? msg : 'Error al iniciar sesión.');
+        setLoading(false);
+        return;
+      }
+      saveTokens(data.access, data.refresh);
+      if (remember) {
+        /* tokens ya persisten en localStorage */
+      }
+      router.replace('/dashboard');
+    } catch {
+      setError('No se pudo conectar con el servidor.');
       setLoading(false);
-      setError('Credenciales incorrectas. Verifica tu correo y contraseña.');
     }
   }
 
@@ -68,14 +95,14 @@ export default function LoginPage() {
             <EyeIllustration />
           </div>
 
-          <p className={styles.brandName}>Clínica de Ojos Norte</p>
-          <p className={styles.brandTagline}>Sistema de Gestión Oftalmológica</p>
+          <p className={styles.brandName}>{brandName}</p>
+          {brandTagline ? <p className={styles.brandTagline}>{brandTagline}</p> : null}
 
           <ul className={styles.featureList}>
             {[
-              { icon: Shield,         text: 'Acceso seguro y controlado'       },
-              { icon: LayoutDashboard, text: 'Gestión integral de la clínica'  },
-              { icon: Activity,        text: 'Historial clínico en tiempo real' },
+              { icon: Shield, text: 'Acceso seguro y controlado' },
+              { icon: LayoutDashboard, text: 'Gestión de equipo y responsabilidades' },
+              { icon: Activity, text: 'Registro de actividad relevante' },
             ].map(({ icon: Icon, text }) => (
               <li key={text} className={styles.featureItem}>
                 <span className={styles.featureIcon}><Icon size={14} strokeWidth={2} /></span>
@@ -94,9 +121,9 @@ export default function LoginPage() {
           <div className={styles.mobileHeader}>
             <div className={styles.mobileLogoRow}>
               <div className={styles.mobileLogoIcon}><Eye size={16} strokeWidth={2.5} /></div>
-              <span className={styles.mobileBrandName}>Clínica de Ojos Norte</span>
+              <span className={styles.mobileBrandName}>{brandName}</span>
             </div>
-            <span className={styles.mobileBrandSub}>Sistema de Gestión</span>
+            {brandTagline ? <span className={styles.mobileBrandSub}>{brandTagline}</span> : null}
           </div>
 
           <div className={styles.cardHeader}>
@@ -117,15 +144,15 @@ export default function LoginPage() {
             {/* Email */}
             <div className={styles.formGroup}>
               <label className={styles.label} htmlFor="email">
-                Correo Electrónico
+                Usuario o correo
               </label>
               <div className={styles.inputWrapper}>
                 <span className={styles.inputIcon}><Mail size={16} /></span>
                 <input
                   id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="correo@clinica.com"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="admin o correo@dominio.com"
                   className={styles.input}
                   value={email}
                   onChange={e => setEmail(e.target.value)}

@@ -50,6 +50,14 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      INTERNAL_API_URL: ${INTERNAL_API_URL}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME}
+      NEXT_PUBLIC_APP_TAGLINE: ${NEXT_PUBLIC_APP_TAGLINE:-}
+      NEXT_PUBLIC_APP_DESCRIPTION: ${NEXT_PUBLIC_APP_DESCRIPTION:-}
+      NEXT_PUBLIC_META_KEYWORDS: ${NEXT_PUBLIC_META_KEYWORDS:-}
+      NEXT_TELEMETRY_DISABLED: "1"
     volumes:
       - ./frontend:/app
       - /app/node_modules

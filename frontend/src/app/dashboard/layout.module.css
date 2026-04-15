@@ -27,6 +27,14 @@
   flex: 1;
   padding: var(--space-6) var(--space-8);
   overflow-y: auto;
+  background: linear-gradient(
+    165deg,
+    var(--color-bg) 0%,
+    var(--color-primary-50) 18%,
+    var(--color-bg) 42%,
+    #fafafa 100%
+  );
+  background-attachment: fixed;
 }
 
 /* ── Responsive ── */

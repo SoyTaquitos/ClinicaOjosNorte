@@ -1,6 +1,6 @@
 # Oftalmología SI1 — Clínica de Ojos Norte
 
-Sistema de Información para la Gestión de Consultas, Citas e Historial para la Clínica de Ojos Norte.
+Sistema de administración (IAM): autenticación, usuarios, roles, permisos y bitácora de auditoría para la Clínica de Ojos Norte.
 
 ## Stack Tecnológico
 
@@ -30,14 +30,17 @@ cp .env.example .env
 # Edita .env con tus valores reales (contraseñas y secret key)
 
 # 3. Construir y levantar los contenedores
-docker-compose up --build
+docker compose up -d --build
 
-# 4. Generar y aplicar migraciones (primera vez o al modificar modelos)
-docker-compose exec backend python manage.py makemigrations
-docker-compose exec backend python manage.py migrate
+# 4. Esperar a que el backend termine de migrar (el entrypoint ya ejecuta `migrate`).
+#    En logs: "Starting development server" = listo. No lances `migrate` en paralelo al primer arranque.
 
-# 5. Poblar base de datos (crea superusuario 'admin', roles, permisos y tipos de cita)
-docker-compose exec backend python manage.py seed
+# 5. (Solo si cambiaste modelos en tu máquina) generar migraciones y aplicarlas
+docker compose exec backend python manage.py makemigrations
+docker compose exec backend python manage.py migrate
+
+# 6. Poblar base de datos (superusuario admin, roles y permisos IAM)
+docker compose exec backend python manage.py seed
 ```
 
 ## Acceso
@@ -61,15 +64,12 @@ Oftalmologia-SI1/
 
 ## Módulos del Sistema
 
-| Módulo            | Descripción                                                     |
-| ----------------- | --------------------------------------------------------------- |
-| Usuarios          | Gestión de acceso (Admin, Administrativo, Médico, Especialista) |
-| Pacientes         | Registro y administración de datos de pacientes                 |
-| Especialistas     | Perfil y disponibilidad horaria de médicos                      |
-| Citas             | Programación, confirmación, cancelación y reprogramación        |
-| Consultas Médicas | Registro de la atención (motivo, diagnóstico, indicaciones)     |
-| Historial Clínico | Antecedentes, diagnósticos, tratamientos, evoluciones, recetas  |
-| Bitácora          | Registro de auditoría de acciones del sistema                   |
+| Módulo    | Descripción                                      |
+| --------- | ------------------------------------------------ |
+| Usuarios  | Autenticación JWT, cuentas del personal interno  |
+| Roles     | Roles y asignación de permisos                   |
+| Permisos  | Catálogo de permisos granulares                  |
+| Bitácora  | Auditoría de acciones (solo lectura vía API)    |
 
 ## Comandos Esenciales Backend
 
@@ -100,7 +100,7 @@ docker compose exec backend python manage.py migrate
 # Ver estado de migraciones
 docker compose exec backend python manage.py showmigrations
 
-# Poblar datos iniciales (admin, roles, permisos, tipos de cita)
+# Poblar datos iniciales (admin, roles, permisos IAM)
 docker compose exec backend python manage.py seed
 
 # Abrir shell de Django
@@ -109,6 +109,32 @@ docker compose exec backend python manage.py shell
 # Recolectar archivos estáticos
 docker compose exec backend python manage.py collectstatic --noinput
 ```
+
+### Migraciones: error `duplicate key ... pg_type_typname_nsp_index` (token_blacklist)
+
+Suele ocurrir si **`migrate` se ejecutó dos veces a la vez** (por ejemplo el `entrypoint` del contenedor y un `docker compose exec ... migrate` manual justo al levantar el stack). PostgreSQL queda a medias.
+
+**Opción A — desarrollo, puedes borrar la base:**
+
+```bash
+docker compose down -v
+docker compose up -d --build
+# Espera ~1 minuto a que el backend muestre "Starting development server", luego:
+docker compose exec backend python manage.py seed
+```
+
+**Opción B — conservar el volumen de Postgres:** entra a SQL y rehace solo JWT blacklist (ajusta usuario y base según tu `.env`):
+
+```bash
+docker compose exec db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+DROP TABLE IF EXISTS token_blacklist_blacklistedtoken CASCADE;
+DROP TABLE IF EXISTS token_blacklist_outstandingtoken CASCADE;
+DELETE FROM django_migrations WHERE app = 'token_blacklist';
+"
+docker compose exec backend python manage.py migrate
+```
+
+En PowerShell puedes cargar `.env` o sustituir `-U` / `-d` a mano.
 
 ## Licencia
 

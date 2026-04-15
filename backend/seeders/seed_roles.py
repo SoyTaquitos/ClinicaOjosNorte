@@ -1,7 +1,7 @@
 """
 seeders/seed_roles.py
-Pobla la tabla roles con los roles base del sistema oftalmológico.
-Idempotente: usa get_or_create, puede ejecutarse múltiples veces sin duplicar.
+Pobla la tabla roles con los roles base del sistema.
+Idempotente: usa get_or_create.
 """
 from apps.roles.models import Rol
 
@@ -9,28 +9,24 @@ from apps.roles.models import Rol
 ROLES_BASE = [
     {
         'nombre': 'Administrador del Sistema',
-        'descripcion': 'Acceso total al sistema. Gestión de usuarios, configuración y auditoría.',
+        'descripcion': 'Acceso total: usuarios, roles, permisos y auditoría.',
     },
     {
-        'nombre': 'Médico Oftalmólogo',
-        'descripcion': 'Acceso a historias clínicas, diagnósticos, recetas y citas propias.',
+        'nombre': 'Operador IAM',
+        'descripcion': 'Gestión de usuarios, roles y permisos según política asignada.',
     },
     {
-        'nombre': 'Recepcionista',
-        'descripcion': 'Gestión de citas, registro de pacientes y agendamiento.',
+        'nombre': 'Auditor',
+        'descripcion': 'Consulta de bitácora y reportes de actividad.',
     },
     {
-        'nombre': 'Técnico Especialista',
-        'descripcion': 'Realización de estudios diagnósticos y carga de resultados.',
+        'nombre': 'Usuario estándar',
+        'descripcion': 'Acceso mínimo al panel autenticado.',
     },
 ]
 
 
 def run():
-    """
-    Crea los roles base si no existen.
-    Retorna (creados, existentes).
-    """
     creados = 0
     existentes = 0
 

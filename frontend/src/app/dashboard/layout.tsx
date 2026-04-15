@@ -1,17 +1,27 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Sidebar         from '@/components/Sidebar';
+import { useRouter } from 'next/navigation';
+import Sidebar from '@/components/Sidebar';
 import DashboardNavbar from '@/components/DashboardNavbar';
-import styles          from './layout.module.css';
+import { DashboardUserProvider } from '@/contexts/DashboardUserContext';
+import { getAccessToken } from '@/lib/auth';
+import styles from './layout.module.css';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   /*
    * collapsed:
    *   Desktop → true = icono-only (72px), false = ancho completo (260px)
    *   Mobile  → true = oculto,            false = visible (overlay)
    */
   const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (!getAccessToken()) {
+      router.replace('/login');
+    }
+  }, [router]);
 
   /* En mobile, empezar colapsado */
   useEffect(() => {
@@ -28,15 +38,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className={styles.wrapper}>
-      <Sidebar collapsed={collapsed} onClose={() => setCollapsed(true)} />
+    <DashboardUserProvider>
+      <div className={styles.wrapper}>
+        <Sidebar collapsed={collapsed} onClose={() => setCollapsed(true)} />
 
-      <div className={`${styles.main} ${collapsed ? styles.sidebarCollapsed : ''}`}>
-        <DashboardNavbar onMenuToggle={toggle} />
-        <main className={styles.content}>
-          {children}
-        </main>
+        <div className={`${styles.main} ${collapsed ? styles.sidebarCollapsed : ''}`}>
+          <DashboardNavbar onMenuToggle={toggle} />
+          <main className={styles.content}>{children}</main>
+        </div>
       </div>
-    </div>
+    </DashboardUserProvider>
   );
 }

@@ -34,5 +34,5 @@ class UsuarioRolSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UsuarioRol
-        fields = ['id_usuario', 'id_rol', 'rol_nombre', 'fecha_asignacion']
-        read_only_fields = ['fecha_asignacion', 'rol_nombre']
+        fields = ['id', 'id_usuario', 'id_rol', 'rol_nombre', 'fecha_asignacion']
+        read_only_fields = ['id', 'fecha_asignacion', 'rol_nombre']

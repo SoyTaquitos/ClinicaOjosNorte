@@ -12,6 +12,16 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+### Registro 5
+
+**Fecha:** 2026-04-15
+**Decisión:** Proxy de API en Next.js (`rewrites` `/api/*` → Django) y JWT en cliente vía localStorage + Axios.
+**Motivo:** El navegador llama al mismo origen (`/api/...`); el servidor Next reenvía a la URL interna del backend (en Docker `http://backend:8000/api` vía `INTERNAL_API_URL`), evitando CORS y simplificando dev. Los tokens se adjuntan en el cliente con interceptor estándar.
+**Impacto:**
+- `frontend/next.config.js`: `internalApiBase()`, rewrites, `output: 'standalone'`.
+- `frontend/src/lib/auth.ts`, `api.ts`: persistencia access/refresh, logout con body `refresh`.
+- Login y páginas dashboard consumen API real (IAM + bitácora).
+
 ### Registro 4
 
 **Fecha:** 2026-03-30
@@ -28,6 +38,8 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 **Decisión:** Bitácora en frontend como página dedicada (`/dashboard/bitacora`) con datos mock hasta conectar API.
 **Motivo:** La bitácora es crítica para auditoría; se necesita vista operativa con hora Bolivia antes del cableado JWT completo.
 **Impacto:** Nueva ruta en App Router; Sidebar ya enlazaba a `/dashboard/bitacora`.
+
+**Actualización 2026-04-15:** La página consume `GET /api/bitacora/` con autenticación JWT; se mantiene el criterio de hora Bolivia en UI.
 
 ---
 

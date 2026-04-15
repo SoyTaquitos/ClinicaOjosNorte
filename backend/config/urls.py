@@ -23,28 +23,6 @@ api_patterns = [
 
     # Bitácora (app separada — solo lectura via API)
     path('', include('apps.bitacora.urls')),
-
-    # Pacientes
-    path('', include('apps.pacientes.urls')),
-
-    # Especialistas
-    path('', include('apps.especialistas.urls')),
-
-    # Historias Clínicas (Ruta principal)
-    path('', include('apps.historial_clinico.urls')),
-    
-    # Sub-registros de Historias Clínicas (Rutas anidadas)
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.antecedentes.urls')),
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.diagnosticos.urls')),
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.tratamientos.urls')),
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.evoluciones.urls')),
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.recetas.urls')),
-
-    # Citas, Tipos de cita, Disponibilidades
-    path('', include('apps.citas.urls')),
-
-    # Consultas médicas
-    path('', include('apps.consultas.urls')),
 ]
 
 urlpatterns = [

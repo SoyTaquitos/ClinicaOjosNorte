@@ -24,7 +24,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # =============================================================================
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='INSECURE-change-me-in-production')
 DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', default='*', cast=Csv())
+ALLOWED_HOSTS = list(config('DJANGO_ALLOWED_HOSTS', default='*', cast=Csv()))
+# Docker Compose: Next proxifica a http://backend:8000 → Host header "backend:8000".
+# Sin esto, DJANGO_ALLOWED_HOSTS sin "backend" provoca DisallowedHost y el login devuelve 400.
+if '*' not in ALLOWED_HOSTS and 'backend' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('backend')
+
+# API JSON: evita 301 APPEND_SLASH cuando el proxy de Next normaliza la ruta
+# (p. ej. /api/users?page=1) y el cliente sigue redirecciones → ERR_TOO_MANY_REDIRECTS.
+APPEND_SLASH = False
 
 # =============================================================================
 # APLICACIONES
@@ -47,21 +55,11 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    'apps.core',            # Utilidades transversales, health check, permissions
-    'apps.users',           # Usuario (CustomUser) + Auth + TokenRecuperacion
-    'apps.roles',           # Rol, UsuarioRol, RolPermiso
-    'apps.permisos',        # Permiso (granular por módulo)
-    'apps.bitacora',        # Registro de auditoría del sistema
-    'apps.pacientes',        # Paciente
-    'apps.especialistas',     # Especialista (médicos/especialistas)
-    'apps.historial_clinico',
-    'apps.antecedentes',
-    'apps.diagnosticos',
-    'apps.tratamientos',
-    'apps.evoluciones',
-    'apps.recetas',
-    'apps.citas',    # Citas, tipos y disponibilidades
-    'apps.consultas', # Consultas médicas (evento cita → historial clínico)
+    'apps.core',      # Utilidades transversales, health check, permissions
+    'apps.users',     # Usuario (CustomUser) + Auth + TokenRecuperacion
+    'apps.roles',     # Rol, UsuarioRol, RolPermiso
+    'apps.permisos',  # Permiso (granular por módulo)
+    'apps.bitacora',  # Registro de auditoría del sistema
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

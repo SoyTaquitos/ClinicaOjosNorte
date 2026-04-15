@@ -267,6 +267,12 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         usuario.estado = 'ACTIVO'
         usuario.is_active = True
         usuario.save(update_fields=['estado', 'is_active'])
+        registrar_bitacora(
+            usuario=request.user, modulo='users', accion=AccionBitacora.EDITAR,
+            descripcion=f'Activó usuario: {usuario.username}',
+            tabla_afectada='usuarios', id_registro_afectado=usuario.id,
+            ip_origen=get_client_ip(request),
+        )
         return Response({'mensaje': f'Usuario {usuario.username} activado.'})
 
     @action(detail=True, methods=['post'])
@@ -276,6 +282,12 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         usuario.estado = 'BLOQUEADO'
         usuario.is_active = False
         usuario.save(update_fields=['estado', 'is_active'])
+        registrar_bitacora(
+            usuario=request.user, modulo='users', accion=AccionBitacora.EDITAR,
+            descripcion=f'Bloqueó usuario: {usuario.username}',
+            tabla_afectada='usuarios', id_registro_afectado=usuario.id,
+            ip_origen=get_client_ip(request),
+        )
         return Response({'mensaje': f'Usuario {usuario.username} bloqueado.'})
 
     @action(detail=True, methods=['get', 'post'], url_path='roles')
@@ -298,5 +310,12 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         data = {**request.data, 'id_usuario': usuario.pk}
         serializer = UsuarioRolSerializer(data=data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        ur = serializer.save()
+        rol_nombre = ur.id_rol.nombre
+        registrar_bitacora(
+            usuario=request.user, modulo='users', accion=AccionBitacora.CREAR,
+            descripcion=f'Asignó rol "{rol_nombre}" a usuario {usuario.username}',
+            tabla_afectada='usuario_rol', id_registro_afectado=ur.pk,
+            ip_origen=get_client_ip(request),
+        )
         return Response(serializer.data, status=status.HTTP_201_CREATED)

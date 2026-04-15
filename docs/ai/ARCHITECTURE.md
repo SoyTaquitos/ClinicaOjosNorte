@@ -26,6 +26,7 @@ Sistema de Información/Gestión Clínica Oftalmológica. Monorepo estructurado 
 
 ## Flujo General del Sistema
 - **Web Flow:** Browser -> Next.js Render/Fetch -> API Django -> PostgreSQL -> API Django -> UI State.
+- **Llamadas API desde el navegador:** rutas relativas `/api/...`. El servidor Next (desarrollo y contenedor) reescribe esas peticiones hacia la base configurada (`INTERNAL_API_URL` / `NEXT_PUBLIC_API_URL`), de modo que el backend Django sigue siendo la única implementación de la API; el frontend no duplica lógica de negocio.
 
 ## Actores del Sistema
 | Tipo | Descripción |

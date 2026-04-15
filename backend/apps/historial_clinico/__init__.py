@@ -1,1 +1,0 @@
-# apps/historias_clinicas

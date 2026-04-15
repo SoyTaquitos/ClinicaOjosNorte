@@ -1,12 +1,21 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
+import {
+  getPublicAppDescription,
+  getPublicAppName,
+  getPublicMetaKeywords,
+} from '@/lib/siteConfig';
 
-export const metadata: Metadata = {
-  title: 'Clínica de Ojos Norte — Sistema de Gestión',
-  description:
-    'Sistema de información para la gestión de consultas, citas e historial clínico de la Clínica de Ojos Norte.',
-  keywords: ['oftalmología', 'clínica', 'ojos', 'gestión', 'pacientes', 'citas', 'Nicaragua'],
-};
+export function generateMetadata(): Metadata {
+  const name = getPublicAppName();
+  const desc = getPublicAppDescription();
+  const keywords = getPublicMetaKeywords();
+  return {
+    title: name ? `${name} — Portal` : 'Portal',
+    ...(desc ? { description: desc } : {}),
+    ...(keywords.length ? { keywords } : {}),
+  };
+}
 
 export default function RootLayout({
   children,

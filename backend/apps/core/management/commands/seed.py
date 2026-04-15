@@ -7,10 +7,9 @@ Uso:
     python manage.py seed
 
     # Solo un seeder específico
-    python manage.py seed --only admin       # superusuario
-    python manage.py seed --only tipos_cita  # tipos de cita
-    python manage.py seed --only roles       # roles del sistema
-    python manage.py seed --only permisos    # permisos granulares
+    python manage.py seed --only admin    # superusuario
+    python manage.py seed --only roles    # roles del sistema
+    python manage.py seed --only permisos # permisos granulares
 
     # Dentro de Docker
     docker-compose exec backend python manage.py seed
@@ -41,10 +40,9 @@ if ROOT_DIR not in sys.path:
 
 
 SEEDERS = {
-    'admin':      ('seeders.seed_admin',      'Superusuario Administrador'),
-    'tipos_cita': ('seeders.seed_tipos_cita', 'Tipos de Cita'),
-    'roles':      ('seeders.seed_roles',      'Roles del Sistema'),
-    'permisos':   ('seeders.seed_permisos',   'Permisos Granulares'),
+    'admin':    ('seeders.seed_admin',    'Superusuario Administrador'),
+    'roles':    ('seeders.seed_roles',    'Roles del Sistema'),
+    'permisos': ('seeders.seed_permisos', 'Permisos Granulares'),
 }
 
 

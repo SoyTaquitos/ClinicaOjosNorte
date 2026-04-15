@@ -1,27 +1,22 @@
 # HANDOFF LATEST
 
-*Última sincronización de documentación y esquema de BD.*
+*Sincronización de documentación con el código en repo.*
 
 ## Fecha
-2026-03-30
+2026-04-15
 
 ## Resumen
-1. **`BaseDeDatos.sql`** actualizado para reflejar el modelo SI1 y el módulo de consultas médicas.
-2. **`docs/ai/CURRENT_STATE.md`** reescrito con frontend, timezone Bolivia, bitácora UI y referencia al SQL.
-3. Decisiones de timezone y bitácora registradas en **`DECISIONS_LOG.md`**.
+1. **Auth + API en frontend:** login contra Django vía proxy `/api/*`; tokens JWT en localStorage; Axios con interceptor; guard de dashboard por token; logout con endpoint de revocación cuando hay refresh.
+2. **Panel IAM:** rutas `/dashboard/usuarios`, `/roles`, `/permisos` con tablas paginadas contra `GET /api/users/`, `/api/roles/`, `/api/permisos/`.
+3. **Bitácora:** `/dashboard/bitacora` ya usa **`GET /api/bitacora/`** (sin mock); filtros, orden y paginación servidor; UI en hora Bolivia.
+4. **Infra Next:** `next.config.js` — `rewrites` hacia base interna (`INTERNAL_API_URL` en Docker compose → `backend:8000`); `output: 'standalone'` para imagen Docker.
+5. **Seed:** comando `manage.py seed` unificado con `--only admin|roles|permisos`; seeders en `backend/seeders/`.
+6. **`config/urls.py`:** API montada en `path('api/', …)` incluyendo `permisos` y demás apps listadas en `api_patterns`.
 
-## Cambios en `BaseDeDatos.sql`
-- Cabecera: proyecto Oftalmología SI1 — Clínica de Ojos Norte; notas SI1 y zona horaria (aplicación).
-- **`tipo_usuario`:** eliminado `PACIENTE`; orden explícito con `ADMIN` primero.
-- **`usuarios`:** nota aclara que solo hay personal autorizado.
-- **`pacientes`:** eliminada columna y relación `id_usuario` → `usuarios`.
-- **Nueva tabla `consultas_medicas`:** `id_consulta`, `id_cita` (unique), `id_historia_clinica`, `id_especialista`, campos clínicos, `registrado_por`, auditoría de fechas.
-- **Relaciones nuevas:** `consultas_medicas` → `citas`, `historias_clinicas`, `especialistas`, `usuarios`.
-
-## Contexto ya existente (no repetido aquí)
-- Implementación Django de `ConsultaMedica`, limpieza Si2→SI1, landing/login/dashboard — ver historial de commits y `CURRENT_STATE.md`.
+## Contexto anterior (sigue válido)
+- `BaseDeDatos.sql`, modelo SI1 (sin paciente como usuario), `consultas_medicas`, timezone Bolivia — ver `CURRENT_STATE.md` y `DECISIONS_LOG.md` registros previos.
 
 ## Próximos pasos sugeridos
-- Integrar `GET /api/bitacora/` en `/dashboard/bitacora` (reemplazar mock).
-- Asegurar que eventos de bitácora sigan registrándose en operaciones críticas del backend.
-- Revisar que seeds y migraciones coincidan con el esquema documentado.
+- Implementar refresh automático de access token antes de forzar logout.
+- Completar flujos de escritura IAM desde el panel (alineados a permisos backend).
+- Extender frontend a módulos clínicos (pacientes, citas, consultas) según prioridad del producto.

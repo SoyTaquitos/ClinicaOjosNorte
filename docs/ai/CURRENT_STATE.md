@@ -1,24 +1,28 @@
 # CURRENT STATE
 
 ## Estado actual del proyecto
-**Oftalmología SI1 — Clínica de Ojos Norte.** Backend Django + frontend Next.js (panel web). Modelo SI1: paciente = datos sin login; sin app móvil; sin registro público.
+**Oftalmología SI1 — Clínica de Ojos Norte.** Backend Django + frontend Next.js (panel web IAM y auditoría). Modelo SI1: paciente = datos sin login; sin app móvil; sin registro público.
 
 ## Backend
 - **TIME_ZONE:** `America/La_Paz` (Bolivia, UTC-4, sin horario de verano). Las fechas se almacenan en UTC (`USE_TZ = True`).
 - **Usuario:** tipos `ADMIN`, `ADMINISTRATIVO`, `MEDICO`, `ESPECIALISTA` (sin `PACIENTE`).
 - **Paciente:** sin FK a `usuarios`.
 - **Consultas médicas:** `apps.consultas` — `consultas_medicas` (OneToOne con `citas`, FK a `historias_clinicas` y `especialistas`); al crear consulta, la cita pasa a `ATENDIDA`.
-- **Bitácora:** `GET /api/bitacora/` (solo lectura, admin/administrativo); escritura desde el sistema.
+- **API bajo** `/api/` (sin prefijo `v1` en `config/urls.py`). Incluye `apps.core`, `users`, `roles`, `permisos`, `bitacora`.
+- **Bitácora:** `GET /api/bitacora/` (lectura; permisos según rol); escritura desde el backend en operaciones que registren eventos.
+- **Seed unificado:** `python manage.py seed` en `apps/core/management/commands/seed.py` — ejecuta `seeders.seed_admin`, `seeders.seed_roles`, `seeders.seed_permisos`. Opción `--only admin|roles|permisos`. Variables opcionales: `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NOMBRES`, `ADMIN_APELLIDOS`.
 
 ## Frontend (Next.js)
-- **Landing** pública (`/`) con paleta violeta, navbar, secciones informativas, ilustración fundoscopia (SVG).
-- **Login** (`/login`) con animaciones; demo local `admin@clinica.com` / `admin123` → `/dashboard`.
-- **Dashboard** con sidebar (colapsable / hamburguesa móvil) + navbar superior.
-- **Bitácora** (`/dashboard/bitacora`): tabla, filtros, paginación, KPIs; **todas las marcas de hora mostradas en hora Bolivia** vía `src/lib/timezone.ts` (`America/La_Paz`, locale `es-BO`).
-- **Responsive:** landing, login, dashboard y bitácora ajustados para escritorio y móvil.
+- **Proxy API:** `next.config.js` reescribe `/api/:path*` → base interna (`INTERNAL_API_URL` o `NEXT_PUBLIC_API_URL` o `http://localhost:8000/api`) para evitar CORS en desarrollo y en Docker (servidor Next → `http://backend:8000/api`).
+- **Auth:** Login (`/login`) hace `POST /api/auth/login/` con body `{ login, password }`; guarda `access` y `refresh` en **localStorage** (`src/lib/auth.ts`). Cliente Axios (`src/lib/api.ts`) adjunta `Authorization: Bearer` y ante **401** limpia tokens y redirige a `/login`. Logout llama `POST /api/auth/logout/` con refresh cuando existe.
+- **Dashboard:** `layout.tsx` redirige a `/login` si no hay access token en cliente.
+- **Rutas panel:** `/dashboard` (panel), `/dashboard/usuarios`, `/dashboard/roles`, `/dashboard/permisos`, `/dashboard/bitacora`. Sidebar + navbar; estilos compartidos IAM en `iam.module.css`.
+- **IAM (listados):** páginas consumen API paginada: `GET /api/users/`, `GET /api/roles/`, `GET /api/permisos/`; manejo de 403 con mensaje al usuario.
+- **Bitácora:** datos reales vía `GET /api/bitacora/` con filtros, orden, búsqueda y paginación; KPIs y horas en **Bolivia** (`src/lib/timezone.ts`, `America/La_Paz`, locale `es-BO`).
+- **Landing** pública (`/`) y **login** con UI violeta / animaciones según diseño actual.
 
 ## Esquema de base de datos (referencia)
-El archivo **`BaseDeDatos.sql`** (DBML para dbdiagram.io) está alineado con SI1:
+El archivo **`BaseDeDatos.sql`** (DBML para dbdiagram.io) debe mantenerse alineado con SI1:
 - `tipo_usuario` sin `PACIENTE`.
 - Tabla `pacientes` **sin** `id_usuario`.
 - Tabla **`consultas_medicas`** y relaciones con `citas`, `historias_clinicas`, `especialistas`, `usuarios` (`registrado_por`).
@@ -26,20 +30,22 @@ El archivo **`BaseDeDatos.sql`** (DBML para dbdiagram.io) está alineado con SI1
 ## Apps Django (resumen)
 | App | Rol |
 |-----|-----|
-| `apps.core` | permisos, health |
-| `apps.users` | Usuario, TokenRecuperacion |
+| `apps.core` | health, comando `seed` |
+| `apps.users` | Usuario, auth JWT, TokenRecuperacion |
 | `apps.roles`, `apps.permisos` | RBAC |
 | `apps.bitacora` | auditoría |
 | `apps.pacientes` | Paciente |
 | `apps.especialistas` | Especialista |
-| `apps.historial_clinico` + subapps | historia, antecedentes, diagnósticos, etc. |
+| `apps.historial_clinico` + subapps | historia clínica |
 | `apps.citas` | citas, tipos, disponibilidades |
 | `apps.consultas` | ConsultaMedica |
 
 ## Pendientes inmediatos
-- Conectar la página de bitácora (y demás módulos) a la API real con JWT.
-- CRUD frontend: pacientes, citas, consultas, etc.
-- Módulo reportes (fuera de alcance actual según decisión previa).
+- Flujo **refresh token** en el cliente (hoy 401 → logout directo; no reintenta con `/api/auth/token/refresh/`).
+- Formularios IAM en frontend: alta/edición usuarios, asignación roles, edición catálogo permisos (si aplica a la API).
+- CRUD frontend dominio clínico: pacientes, citas, consultas, historias (listados/detalle según prioridad).
+- Endurecer almacenamiento de sesión (p. ej. cookies **http-only**) si se exige para producción.
+- Módulo reportes (fuera de alcance corto según decisión previa).
 
 ---
-*(Actualizado: 2026-03-30)*
+*(Actualizado: 2026-04-15)*

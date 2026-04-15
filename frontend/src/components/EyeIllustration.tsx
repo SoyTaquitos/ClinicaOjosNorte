@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { getPublicAppName } from '@/lib/siteConfig';
 
 export default function EyeIllustration() {
   const svgRef  = useRef<SVGSVGElement>(null);
@@ -70,6 +71,8 @@ export default function EyeIllustration() {
   const PB  = '2.8s';              /* begin: después del draw-in */
   const KS  = '0.4 0 0.2 1;0.4 0 0.2 1';
   const KT  = '0;0.5;1';
+  const brand = getPublicAppName();
+  const eyeAria = brand ? `Ilustración de fondo de ojo — ${brand}` : 'Ilustración de fondo de ojo';
 
   return (
     <svg
@@ -77,7 +80,7 @@ export default function EyeIllustration() {
       viewBox="0 0 400 400"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      aria-label="Vista de fondo de ojo — Clínica de Ojos Norte"
+      aria-label={eyeAria}
       style={{ cursor: 'crosshair' }}
     >
       <defs>

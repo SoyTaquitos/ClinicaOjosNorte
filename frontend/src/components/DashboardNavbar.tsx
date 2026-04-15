@@ -1,23 +1,23 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import {
   Menu, Bell, ChevronDown, ChevronRight,
-  User, Settings, LogOut,
+  LogOut,
 } from 'lucide-react';
+import { useDashboardUser } from '@/contexts/DashboardUserContext';
+import { logoutApi } from '@/lib/api';
+import { initialsFromMe, labelTipoUsuario } from '@/lib/meProfile';
 import styles from './DashboardNavbar.module.css';
 
 const PAGE_NAMES: Record<string, string> = {
-  '/dashboard':               'Dashboard',
-  '/dashboard/pacientes':     'Pacientes',
-  '/dashboard/citas':         'Citas',
-  '/dashboard/consultas':     'Consultas Médicas',
-  '/dashboard/historial':     'Historial Clínico',
-  '/dashboard/especialistas': 'Especialistas',
-  '/dashboard/usuarios':      'Usuarios',
-  '/dashboard/bitacora':      'Bitácora',
+  '/dashboard':              'Panel',
+  '/dashboard/usuarios':     'Usuarios',
+  '/dashboard/roles':        'Roles',
+  '/dashboard/permisos':     'Permisos',
+  '/dashboard/bitacora':     'Bitácora',
 };
 
 interface DashboardNavbarProps {
@@ -25,11 +25,28 @@ interface DashboardNavbarProps {
 }
 
 export default function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) {
-  const pathname             = usePathname();
+  const pathname = usePathname();
+  const router = useRouter();
+  const { me, loading } = useDashboardUser();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef          = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentPage = PAGE_NAMES[pathname] ?? 'Dashboard';
+  const currentPage = PAGE_NAMES[pathname] ?? 'Panel';
+
+  const displayName =
+    (me?.nombre_completo?.trim() || me?.username?.trim() || (loading ? '…' : 'Usuario')) ?? 'Usuario';
+  const roleLabel = me
+    ? labelTipoUsuario(me.tipo_usuario)
+    : loading
+      ? 'Cargando…'
+      : '—';
+  const initials = me ? initialsFromMe(me) : loading ? '·' : '?';
+
+  async function handleLogout() {
+    setDropdownOpen(false);
+    await logoutApi();
+    router.replace('/login');
+  }
 
   /* Cerrar dropdown al hacer click fuera */
   useEffect(() => {
@@ -87,34 +104,35 @@ export default function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) 
           <button
             className={styles.userBtn}
             onClick={() => setDropdownOpen(o => !o)}
-            aria-label="Menú de usuario"
+            aria-label={`Cuenta: ${displayName}`}
             aria-expanded={dropdownOpen}
+            title={displayName}
           >
-            <div className={styles.avatar}>AD</div>
-            <div className={styles.userInfo}>
-              <span className={styles.userName}>Administrador</span>
-              <span className={styles.userRole}>Admin del Sistema</span>
-            </div>
-            <ChevronDown size={14} className={styles.chevron} />
+            <div className={styles.avatar}>{initials}</div>
+            <ChevronDown size={14} className={styles.chevron} aria-hidden />
           </button>
 
           {dropdownOpen && (
             <div className={styles.dropdown} role="menu">
-              <a href="#" className={styles.dropdownItem} role="menuitem">
-                <User size={15} /> Mi Perfil
-              </a>
-              <a href="#" className={styles.dropdownItem} role="menuitem">
-                <Settings size={15} /> Configuración
-              </a>
+              <div className={styles.dropdownHeader}>
+                <div className={styles.dropdownAvatar}>{initials}</div>
+                <div className={styles.dropdownHeaderText}>
+                  <span className={styles.dropdownName}>{displayName}</span>
+                  {me?.email ? (
+                    <span className={styles.dropdownEmail}>{me.email}</span>
+                  ) : null}
+                  <span className={styles.dropdownRole}>{roleLabel}</span>
+                </div>
+              </div>
               <div className={styles.dropdownDivider} />
-              <Link
-                href="/login"
+              <button
+                type="button"
                 className={`${styles.dropdownItem} ${styles.danger}`}
                 role="menuitem"
-                onClick={() => setDropdownOpen(false)}
+                onClick={handleLogout}
               >
-                <LogOut size={15} /> Cerrar Sesión
-              </Link>
+                <LogOut size={15} /> Cerrar sesión
+              </button>
             </div>
           )}
         </div>
