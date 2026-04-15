@@ -8,6 +8,7 @@ import EyeIllustration from '@/components/EyeIllustration';
 import { browserApiOrigin } from '@/lib/api';
 import { saveTokens } from '@/lib/auth';
 import { getPublicAppName, getPublicAppTagline } from '@/lib/siteConfig';
+import { devLoginHintPassword, devLoginHintUser, showDevLoginHint } from '@/lib/loginDevHint';
 import styles from './page.module.css';
 
 const brandName = getPublicAppName() || 'Portal';
@@ -224,6 +225,29 @@ export default function LoginPage() {
             </Link>
           </div>
         </div>
+
+        {showDevLoginHint() ? (
+          <aside className={styles.devHint} aria-label="Credenciales de administrador para pruebas">
+            <p className={styles.devHintTitle}>Administrador (desarrollo)</p>
+            <dl className={styles.devHintList}>
+              <div className={styles.devHintRow}>
+                <dt>Usuario</dt>
+                <dd>
+                  <code className={styles.devHintCode}>{devLoginHintUser()}</code>
+                </dd>
+              </div>
+              <div className={styles.devHintRow}>
+                <dt>Contraseña</dt>
+                <dd>
+                  <code className={styles.devHintCode}>{devLoginHintPassword()}</code>
+                </dd>
+              </div>
+            </dl>
+            <p className={styles.devHintNote}>
+              Mismas credenciales que crea el seeder <code>seed_admin</code>. Desactiva en producción.
+            </p>
+          </aside>
+        ) : null}
       </div>
     </div>
   );
