@@ -1,11 +1,12 @@
 'use client';
 
+import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, UserCog, ShieldCheck, KeyRound, Activity, LogOut,
-  Eye, X,
+  Eye, X, ShieldAlert,
 } from 'lucide-react';
 import { useDashboardUser } from '@/contexts/DashboardUserContext';
 import { logoutApi } from '@/lib/api';
@@ -13,11 +14,22 @@ import { initialsFromMe, labelTipoUsuario } from '@/lib/meProfile';
 import { getPublicAppName } from '@/lib/siteConfig';
 import styles from './Sidebar.module.css';
 
-const NAV_ITEMS = [
+const NAV_ITEMS: {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  adminOnly?: boolean;
+}[] = [
   { href: '/dashboard',           icon: LayoutDashboard, label: 'Panel'      },
   { href: '/dashboard/usuarios', icon: UserCog,        label: 'Usuarios'   },
   { href: '/dashboard/roles',    icon: ShieldCheck,    label: 'Roles'      },
   { href: '/dashboard/permisos', icon: KeyRound,       label: 'Permisos'   },
+  {
+    href: '/dashboard/seguridad-login',
+    icon: ShieldAlert,
+    label: 'Login seguridad',
+    adminOnly: true,
+  },
   { href: '/dashboard/bitacora',  icon: Activity,       label: 'Bitácora'   },
 ];
 
@@ -78,7 +90,8 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
 
         <nav className={styles.nav} aria-label="Menú principal">
           <ul>
-            {NAV_ITEMS.map(({ href, icon: Icon, label }) => (
+            {NAV_ITEMS.filter((item) => !item.adminOnly || me?.tipo_usuario === 'ADMIN').map(
+              ({ href, icon: Icon, label }) => (
               <li key={href}>
                 <Link
                   href={href}

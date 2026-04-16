@@ -6,6 +6,7 @@
 ## Backend
 - **TIME_ZONE:** `America/La_Paz` (Bolivia, UTC-4, sin horario de verano). Las fechas se almacenan en UTC (`USE_TZ = True`).
 - **Usuario:** tipos `ADMIN`, `ADMINISTRATIVO`, `MEDICO`, `ESPECIALISTA` (sin `PACIENTE`).
+- **Bloqueo temporal por login:** tras N intentos fallidos con la misma clave (email en minúsculas o username tal cual), el login devuelve **429** con `retry_after_seconds`. Umbrales en BD: `configuracion_login_seguridad` (fila única); estado por clave en `bloqueo_intento_login`. **Solo ADMIN:** `GET/PATCH /api/security/login-config/`. Panel: `/dashboard/seguridad-login`. Independiente del estado manual `BLOQUEADO` del usuario.
 - **Paciente:** sin FK a `usuarios`.
 - **Consultas médicas:** `apps.consultas` — `consultas_medicas` (OneToOne con `citas`, FK a `historias_clinicas` y `especialistas`); al crear consulta, la cita pasa a `ATENDIDA`.
 - **API bajo** `/api/` (sin prefijo `v1` en `config/urls.py`). Incluye `apps.core`, `users`, `roles`, `permisos`, `bitacora`.
@@ -16,7 +17,8 @@
 - **Proxy API:** `next.config.js` reescribe `/api/:path*` → base interna (`INTERNAL_API_URL` o `NEXT_PUBLIC_API_URL` o `http://localhost:8000/api`) para evitar CORS en desarrollo y en Docker (servidor Next → `http://backend:8000/api`).
 - **Auth:** Login (`/login`) hace `POST /api/auth/login/` con body `{ login, password }`; guarda `access` y `refresh` en **localStorage** (`src/lib/auth.ts`). Cliente Axios (`src/lib/api.ts`) adjunta `Authorization: Bearer` y ante **401** limpia tokens y redirige a `/login`. Logout llama `POST /api/auth/logout/` con refresh cuando existe.
 - **Dashboard:** `layout.tsx` redirige a `/login` si no hay access token en cliente.
-- **Rutas panel:** `/dashboard` (panel), `/dashboard/usuarios`, `/dashboard/roles`, `/dashboard/permisos`, `/dashboard/bitacora`. Sidebar + navbar; estilos compartidos IAM en `iam.module.css`.
+- **Rutas panel:** `/dashboard` (panel), `/dashboard/usuarios`, `/dashboard/roles`, `/dashboard/permisos`, `/dashboard/seguridad-login` (solo menú si `tipo_usuario === 'ADMIN'`), `/dashboard/contrasena` (cambio de contraseña con sesión; enlace en menú usuario del navbar), `/dashboard/bitacora`. Sidebar + navbar; estilos compartidos IAM en `iam.module.css`.
+- **Login:** respuesta **429** por bloqueo temporal; UI muestra cuenta atrás aproximada (`retry_after_seconds`).
 - **IAM (listados):** páginas consumen API paginada: `GET /api/users/`, `GET /api/roles/`, `GET /api/permisos/`; manejo de 403 con mensaje al usuario.
 - **Bitácora:** datos reales vía `GET /api/bitacora/` con filtros, orden, búsqueda y paginación; KPIs y horas en **Bolivia** (`src/lib/timezone.ts`, `America/La_Paz`, locale `es-BO`).
 - **Landing** pública (`/`) y **login** con UI violeta / animaciones según diseño actual.
@@ -48,4 +50,4 @@ El archivo **`BaseDeDatos.sql`** (DBML para dbdiagram.io) debe mantenerse alinea
 - Módulo reportes (fuera de alcance corto según decisión previa).
 
 ---
-*(Actualizado: 2026-04-15)*
+*(Actualizado: 2026-04-16)*

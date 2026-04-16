@@ -12,6 +12,13 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+### Registro 6
+
+**Fecha:** 2026-04-16
+**Decisión:** Bloqueo temporal por **clave de login** (email normalizado en minúsculas o username sin `@`) con umbrales en BD editables solo por **ADMIN** (`ConfiguracionLoginSeguridad` + `BloqueoIntentoLogin`); sin librería externa.
+**Motivo:** Cumplir requisito de bloqueo tras intentos fallidos y duración configurable desde el panel; la fuente de verdad debe ser el backend (no el navegador). Se descartó bloqueo por IP para alinear con el alcance acordado.
+**Impacto:** `LoginView` devuelve **429** con `retry_after_seconds`; `GET/PATCH /api/security/login-config/`; página `/dashboard/seguridad-login`; login UI muestra cuenta atrás. No altera el campo `estado=BLOQUEADO` administrativo del usuario.
+
 ### Registro 5
 
 **Fecha:** 2026-04-15

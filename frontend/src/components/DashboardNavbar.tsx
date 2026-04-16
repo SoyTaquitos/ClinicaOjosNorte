@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import {
   Menu, Bell, ChevronDown, ChevronRight,
+  KeyRound,
   LogOut,
 } from 'lucide-react';
 import { useDashboardUser } from '@/contexts/DashboardUserContext';
@@ -13,11 +14,13 @@ import { initialsFromMe, labelTipoUsuario } from '@/lib/meProfile';
 import styles from './DashboardNavbar.module.css';
 
 const PAGE_NAMES: Record<string, string> = {
-  '/dashboard':              'Panel',
-  '/dashboard/usuarios':     'Usuarios',
-  '/dashboard/roles':        'Roles',
-  '/dashboard/permisos':     'Permisos',
-  '/dashboard/bitacora':     'Bitácora',
+  '/dashboard':                 'Panel',
+  '/dashboard/usuarios':        'Usuarios',
+  '/dashboard/roles':           'Roles',
+  '/dashboard/permisos':        'Permisos',
+  '/dashboard/seguridad-login': 'Login seguridad',
+  '/dashboard/contrasena':      'Contraseña',
+  '/dashboard/bitacora':        'Bitácora',
 };
 
 interface DashboardNavbarProps {
@@ -125,6 +128,15 @@ export default function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) 
                 </div>
               </div>
               <div className={styles.dropdownDivider} />
+              <Link
+                href="/dashboard/contrasena"
+                className={styles.dropdownItem}
+                role="menuitem"
+                onClick={() => setDropdownOpen(false)}
+              >
+                <KeyRound size={15} aria-hidden />
+                Cambiar contraseña
+              </Link>
               <button
                 type="button"
                 className={`${styles.dropdownItem} ${styles.danger}`}

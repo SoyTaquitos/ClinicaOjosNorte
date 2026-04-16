@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, Lock, Mail, EyeOff, ChevronLeft, Shield, Activity, LayoutDashboard } from 'lucide-react';
 import EyeIllustration from '@/components/EyeIllustration';
 import { browserApiOrigin } from '@/lib/api';
@@ -22,6 +22,23 @@ export default function LoginPage() {
   const [remember,     setRemember]     = useState(false);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState('');
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return undefined;
+    const id = window.setTimeout(() => {
+      setLockoutSeconds((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => window.clearTimeout(id);
+  }, [lockoutSeconds]);
+
+  const formLocked = loading || lockoutSeconds > 0;
+
+  function formatWait(sec: number): string {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return m > 0 ? `${m} min ${s}s` : `${s}s`;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,6 +46,9 @@ export default function LoginPage() {
 
     if (!email || !password) {
       setError('Por favor, completa todos los campos.');
+      return;
+    }
+    if (lockoutSeconds > 0) {
       return;
     }
 
@@ -43,6 +63,19 @@ export default function LoginPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (res.status === 429) {
+          const retry =
+            typeof data.retry_after_seconds === 'number' && data.retry_after_seconds >= 0
+              ? Math.ceil(data.retry_after_seconds)
+              : 60;
+          setLockoutSeconds(retry);
+          const msg =
+            (data.login && (Array.isArray(data.login) ? data.login[0] : data.login)) ||
+            'Demasiados intentos fallidos. Espera antes de volver a intentar.';
+          setError(typeof msg === 'string' ? msg : 'Espera antes de volver a intentar.');
+          setLoading(false);
+          return;
+        }
         const msg =
           (data.login && (Array.isArray(data.login) ? data.login[0] : data.login)) ||
           data.detail ||
@@ -52,6 +85,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
+      setLockoutSeconds(0);
       saveTokens(data.access, data.refresh);
       if (remember) {
         /* tokens ya persisten en localStorage */
@@ -138,7 +172,12 @@ export default function LoginPage() {
             {error && (
               <div className={styles.errorBanner} role="alert">
                 <Lock size={15} />
-                {error}
+                <span>
+                  {error}
+                  {lockoutSeconds > 0 ? (
+                    <> Puedes reintentar en {formatWait(lockoutSeconds)}.</>
+                  ) : null}
+                </span>
               </div>
             )}
 
@@ -157,7 +196,7 @@ export default function LoginPage() {
                   className={styles.input}
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  disabled={loading}
+                  disabled={formLocked}
                 />
               </div>
             </div>
@@ -177,7 +216,7 @@ export default function LoginPage() {
                   className={styles.input}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  disabled={loading}
+                  disabled={formLocked}
                 />
                 <button
                   type="button"
@@ -197,7 +236,7 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={remember}
                   onChange={e => setRemember(e.target.checked)}
-                  disabled={loading}
+                  disabled={formLocked}
                 />
                 Recordarme
               </label>
@@ -206,7 +245,7 @@ export default function LoginPage() {
               </a>
             </div>
 
-            <button type="submit" className={styles.submitBtn} disabled={loading}>
+            <button type="submit" className={styles.submitBtn} disabled={formLocked}>
               {loading ? (
                 <>
                   <span className={styles.spinner} />

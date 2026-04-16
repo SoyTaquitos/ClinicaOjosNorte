@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import TokenRecuperacion, Usuario
+from .models import BloqueoIntentoLogin, ConfiguracionLoginSeguridad, TokenRecuperacion, Usuario
 
 
 @admin.register(Usuario)
@@ -36,6 +36,23 @@ class UsuarioAdmin(UserAdmin):
             ),
         }),
     )
+
+
+@admin.register(ConfiguracionLoginSeguridad)
+class ConfiguracionLoginSeguridadAdmin(admin.ModelAdmin):
+    list_display = ['id', 'max_intentos_fallidos', 'minutos_bloqueo']
+
+    def has_add_permission(self, request):
+        return not ConfiguracionLoginSeguridad.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(BloqueoIntentoLogin)
+class BloqueoIntentoLoginAdmin(admin.ModelAdmin):
+    list_display = ['login_key', 'intentos_fallidos', 'bloqueado_hasta']
+    search_fields = ['login_key']
 
 
 @admin.register(TokenRecuperacion)

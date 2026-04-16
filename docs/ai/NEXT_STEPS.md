@@ -27,6 +27,7 @@ Lista priorizada de los siguientes pasos a realizar en el proyecto Oftalmología
 - [ ] Despliegue en nube (VM/VPS con Nginx reverso y volúmenes Docker).
 
 ## Pendientes Técnicos
+- [x] Bloqueo temporal configurable por intentos fallidos de login (clave de login; ADMIN edita umbrales).
 - [x] Permisos granulares expuestos en backend (`apps.permisos`); frontend ya distingue 403 en listados IAM/bitácora.
 - [ ] Política explícita en UI: qué ve cada rol (ocultar rutas o deshabilitar acciones según permisos del JWT o `/api/auth/me/`).
 - [ ] Evaluar paginación y filtros avanzados en listas grandes de dominio clínico.

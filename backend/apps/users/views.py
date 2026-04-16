@@ -33,14 +33,23 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.bitacora.models import AccionBitacora
-from apps.core.permissions import IsAdministrativoOrAdmin
+from apps.core.permissions import IsAdmin, IsAdministrativoOrAdmin
 from apps.core.utils import get_client_ip, registrar_bitacora
 
 from .emails import enviar_recuperacion_password
-from .models import Usuario
+from .login_lockout import (
+    is_locked,
+    lockout_error_payload,
+    normalize_login_key,
+    record_failure,
+    record_success,
+)
+from .models import ConfiguracionLoginSeguridad, Usuario
 from .serializers import (
+    BAD_CREDENTIALS_MSG,
     CambiarPasswordSerializer,
     ConfirmarPasswordSerializer,
+    LoginSeguridadConfigSerializer,
     LoginSerializer,
     PerfilSerializer,
     RecuperarPasswordSerializer,
@@ -62,6 +71,17 @@ def _jwt_response(usuario):
     }
 
 
+def _errors_mean_bad_credentials_only(errors):
+    """True si el único fallo es credenciales incorrectas (cuenta para bloqueo temporal)."""
+    login_err = errors.get('login')
+    if not login_err:
+        return False
+    first = login_err[0] if isinstance(login_err, (list, tuple)) else login_err
+    if str(first) != BAD_CREDENTIALS_MSG:
+        return False
+    return len(errors) == 1
+
+
 # ---------------------------------------------------------------------------
 # Auth Views
 # ---------------------------------------------------------------------------
@@ -75,9 +95,30 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        login_raw = request.data.get('login', '')
+        login_key = normalize_login_key(login_raw) if isinstance(login_raw, str) else ''
+
+        locked, retry_sec = is_locked(login_key)
+        if locked:
+            return Response(
+                lockout_error_payload(retry_sec),
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            if _errors_mean_bad_credentials_only(serializer.errors):
+                record_failure(login_key)
+                locked2, retry2 = is_locked(login_key)
+                if locked2:
+                    return Response(
+                        lockout_error_payload(retry2),
+                        status=status.HTTP_429_TOO_MANY_REQUESTS,
+                    )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         usuario = serializer.validated_data['user']
+        record_success(login_key)
 
         usuario.ultimo_acceso = timezone.now()
         usuario.save(update_fields=['ultimo_acceso'])
@@ -89,6 +130,39 @@ class LoginView(APIView):
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
         return Response(_jwt_response(usuario))
+
+
+class LoginSeguridadConfigView(APIView):
+    """
+    GET/PATCH /api/security/login-config/
+    Solo ADMIN. Umbrales de bloqueo temporal por intentos fallidos (por clave de login).
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        cfg = ConfiguracionLoginSeguridad.get_solo()
+        return Response(LoginSeguridadConfigSerializer(cfg).data)
+
+    def patch(self, request):
+        cfg = ConfiguracionLoginSeguridad.get_solo()
+        ser = LoginSeguridadConfigSerializer(cfg, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        inst = ser.instance
+        registrar_bitacora(
+            usuario=request.user,
+            modulo='auth',
+            accion=AccionBitacora.EDITAR,
+            descripcion=(
+                f'Config seguridad login: max_intentos={inst.max_intentos_fallidos}, '
+                f'minutos_bloqueo={inst.minutos_bloqueo}'
+            ),
+            tabla_afectada='configuracion_login_seguridad',
+            id_registro_afectado=1,
+            ip_origen=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        )
+        return Response(LoginSeguridadConfigSerializer(inst).data)
 
 
 class LogoutView(APIView):

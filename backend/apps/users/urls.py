@@ -25,6 +25,7 @@ from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 
 from .views import (
     ChangePasswordView,
+    LoginSeguridadConfigView,
     LoginView,
     LogoutView,
     MeView,
@@ -37,6 +38,8 @@ router = DefaultRouter(trailing_slash=False)
 router.register('users', UsuarioViewSet, basename='users')
 
 urlpatterns = [
+    path('security/login-config/', LoginSeguridadConfigView.as_view(), name='security-login-config'),
+    path('security/login-config', LoginSeguridadConfigView.as_view()),
     # Auth (con y sin slash final: el proxy de Next puede enviar POST sin `/` y
     # APPEND_SLASH no puede redirigir manteniendo el body → RuntimeError 500).
     path('auth/login/', LoginView.as_view(), name='auth-login'),

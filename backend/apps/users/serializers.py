@@ -9,7 +9,9 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import TokenRecuperacion, Usuario
+from .models import ConfiguracionLoginSeguridad, TokenRecuperacion, Usuario
+
+BAD_CREDENTIALS_MSG = 'Credenciales incorrectas.'
 
 
 # ---------------------------------------------------------------------------
@@ -30,13 +32,13 @@ class LoginSerializer(serializers.Serializer):
                 obj = Usuario.objects.get(email=login_val)
                 username = obj.username
             except Usuario.DoesNotExist:
-                raise serializers.ValidationError({'login': 'Credenciales incorrectas.'})
+                raise serializers.ValidationError({'login': BAD_CREDENTIALS_MSG})
         else:
             username = login_val
 
         user = authenticate(username=username, password=password)
         if not user:
-            raise serializers.ValidationError({'login': 'Credenciales incorrectas.'})
+            raise serializers.ValidationError({'login': BAD_CREDENTIALS_MSG})
         if user.estado == 'BLOQUEADO':
             raise serializers.ValidationError({'login': 'Cuenta bloqueada. Contacta al administrador.'})
         if user.estado == 'INACTIVO':
@@ -44,6 +46,24 @@ class LoginSerializer(serializers.Serializer):
 
         data['user'] = user
         return data
+
+
+class LoginSeguridadConfigSerializer(serializers.ModelSerializer):
+    """Lectura/actualización por ADMIN del umbral de intentos y minutos de bloqueo."""
+
+    class Meta:
+        model = ConfiguracionLoginSeguridad
+        fields = ('max_intentos_fallidos', 'minutos_bloqueo')
+
+    def validate_max_intentos_fallidos(self, value):
+        if value < 1 or value > 50:
+            raise serializers.ValidationError('Debe estar entre 1 y 50.')
+        return value
+
+    def validate_minutos_bloqueo(self, value):
+        if value < 1 or value > 10080:
+            raise serializers.ValidationError('Debe estar entre 1 y 10080 (7 días).')
+        return value
 
 
 class CambiarPasswordSerializer(serializers.Serializer):
