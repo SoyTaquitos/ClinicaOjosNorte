@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '@/lib/api';
 import styles from '../iam.module.css';
 
@@ -11,13 +11,61 @@ interface RolRow {
   activo: boolean;
 }
 
+interface PermisoRow {
+  id_permiso: number;
+  codigo: string;
+  nombre: string;
+  modulo: string;
+  descripcion: string | null;
+}
+
+interface RolPermisoApiRow {
+  id_rol: number;
+  id_permiso: number;
+  fecha_asignacion?: string;
+}
+
+const PERM_PAGE = 20;
+
+async function fetchAllPermisos(): Promise<PermisoRow[]> {
+  const all: PermisoRow[] = [];
+  let p = 1;
+  while (true) {
+    const res = await api.get<{ count: number; results: PermisoRow[] }>(
+      `/api/permisos?page=${p}`,
+    );
+    const batch = res.data.results ?? [];
+    all.push(...batch);
+    if (batch.length < PERM_PAGE || all.length >= (res.data.count ?? 0)) break;
+    p += 1;
+  }
+  return all;
+}
+
+async function syncRolePermisos(rolId: number, wanted: Set<number>): Promise<void> {
+  const { data } = await api.get<RolPermisoApiRow[]>(`/api/roles/${rolId}/permisos`);
+  const current = new Set(
+    (Array.isArray(data) ? data : []).map((r) => Number(r.id_permiso)),
+  );
+  const toRemove = [...current].filter((id) => !wanted.has(id));
+  const toAdd = [...wanted].filter((id) => !current.has(id));
+  for (const pid of toRemove) {
+    await api.delete(`/api/roles/${rolId}/permisos/${pid}`);
+  }
+  for (const pid of toAdd) {
+    await api.post(`/api/roles/${rolId}/permisos`, { id_permiso: pid });
+  }
+}
+
 function apiErr(e: unknown): string {
   const ax = e as {
-    response?: { data?: Record<string, string[] | string> | string };
+    response?: { data?: Record<string, unknown> | string };
   };
   const d = ax.response?.data;
   if (typeof d === 'string') return d;
-  if (d && typeof d === 'object') {
+  if (d && typeof d === 'object' && !Array.isArray(d)) {
+    if (typeof d.error === 'string') return d.error;
+    if (typeof d.detail === 'string') return d.detail;
     const vals = Object.values(d).flat();
     const first = vals.find((x) => typeof x === 'string') as string | undefined;
     if (first) return first;
@@ -46,6 +94,10 @@ export default function RolesPage() {
   const [fieldErr, setFieldErr] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
+  const [permCatalog, setPermCatalog] = useState<PermisoRow[]>([]);
+  const [permCatalogLoading, setPermCatalogLoading] = useState(false);
+  const [selectedPermIds, setSelectedPermIds] = useState<Set<number>>(() => new Set());
+
   const loadRoles = useCallback(async (p: number) => {
     setLoading(true);
     setErr(null);
@@ -68,11 +120,65 @@ export default function RolesPage() {
     loadRoles(page);
   }, [page, loadRoles]);
 
+  useEffect(() => {
+    if (!modal) return;
+    let cancel = false;
+    setPermCatalogLoading(true);
+    fetchAllPermisos()
+      .then((list) => {
+        if (!cancel) setPermCatalog(list);
+      })
+      .catch(() => {
+        if (!cancel) setPermCatalog([]);
+      })
+      .finally(() => {
+        if (!cancel) setPermCatalogLoading(false);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [modal]);
+
+  useEffect(() => {
+    if (modal !== 'edit' || editPk == null) return;
+    let cancel = false;
+    api
+      .get<RolPermisoApiRow[]>(`/api/roles/${editPk}/permisos`)
+      .then(({ data }) => {
+        if (cancel) return;
+        const ids = new Set(
+          (Array.isArray(data) ? data : []).map((r) => Number(r.id_permiso)),
+        );
+        setSelectedPermIds(ids);
+      })
+      .catch(() => {
+        if (!cancel) setSelectedPermIds(new Set());
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [modal, editPk]);
+
+  const permisosByModulo = useMemo(() => {
+    const m = new Map<string, PermisoRow[]>();
+    for (const p of permCatalog) {
+      const key = p.modulo || '—';
+      const arr = m.get(key) ?? [];
+      arr.push(p);
+      m.set(key, arr);
+    }
+    for (const arr of m.values()) {
+      arr.sort((a, b) => a.codigo.localeCompare(b.codigo));
+    }
+    return [...m.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [permCatalog]);
+
   const openCreate = () => {
     setForm(emptyForm);
     setFormErr(null);
     setFieldErr({});
     setEditPk(null);
+    setSelectedPermIds(new Set());
     setModal('create');
   };
 
@@ -84,6 +190,7 @@ export default function RolesPage() {
     });
     setFormErr(null);
     setFieldErr({});
+    setSelectedPermIds(new Set());
     setEditPk(r.id_rol);
     setModal('edit');
   };
@@ -92,7 +199,18 @@ export default function RolesPage() {
     setModal(null);
     setEditPk(null);
     setSaving(false);
+    setPermCatalog([]);
+    setSelectedPermIds(new Set());
   };
+
+  function togglePermiso(id: number) {
+    setSelectedPermIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const submit = async () => {
     setFormErr(null);
@@ -104,10 +222,16 @@ export default function RolesPage() {
         descripcion: form.descripcion.trim() || undefined,
         activo: form.activo,
       };
+      let rolId: number | null = null;
       if (modal === 'create') {
-        await api.post('/api/roles', body);
+        const res = await api.post<{ id_rol: number }>('/api/roles', body);
+        rolId = res.data.id_rol;
       } else if (modal === 'edit' && editPk != null) {
         await api.patch(`/api/roles/${editPk}`, body);
+        rolId = editPk;
+      }
+      if (rolId != null) {
+        await syncRolePermisos(rolId, selectedPermIds);
       }
       closeModal();
       await loadRoles(page);
@@ -131,7 +255,7 @@ export default function RolesPage() {
   const remove = async (r: RolRow) => {
     if (
       !window.confirm(
-        `¿Eliminar rol "${r.nombre}"? Solo si no está en uso crítico.`
+        `¿Eliminar rol "${r.nombre}"? Solo si no está en uso crítico.`,
       )
     ) {
       return;
@@ -233,7 +357,12 @@ export default function RolesPage() {
             if (ev.target === ev.currentTarget) closeModal();
           }}
         >
-          <div className={styles.modalPanel} role="dialog" aria-modal="true">
+          <div
+            className={styles.modalPanel}
+            role="dialog"
+            aria-modal="true"
+            style={{ maxWidth: '36rem' }}
+          >
             <h2 className={styles.modalTitle}>
               {modal === 'create' ? 'Nuevo rol' : 'Editar rol'}
             </h2>
@@ -265,6 +394,72 @@ export default function RolesPage() {
                 Activo
               </label>
             </div>
+
+            <div className={styles.formRow}>
+              <label>Permisos del rol</label>
+              {permCatalogLoading ? (
+                <p className={styles.muted}>Cargando permisos…</p>
+              ) : permCatalog.length === 0 ? (
+                <p className={styles.muted}>No se pudieron cargar permisos.</p>
+              ) : (
+                <div
+                  style={{
+                    maxHeight: 'min(50vh, 280px)',
+                    overflowY: 'auto',
+                    border: '1px solid var(--color-border, #e5e7eb)',
+                    borderRadius: 8,
+                    padding: '0.5rem 0.75rem',
+                  }}
+                >
+                  {permisosByModulo.map(([modulo, lista]) => (
+                    <div key={modulo} style={{ marginBottom: '0.75rem' }}>
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          color: 'var(--color-text-muted, #6b7280)',
+                          marginBottom: 4,
+                        }}
+                      >
+                        {modulo}
+                      </div>
+                      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                        {lista.map((p) => (
+                          <li key={p.id_permiso} style={{ marginBottom: 4 }}>
+                            <label
+                              style={{
+                                display: 'flex',
+                                gap: 8,
+                                alignItems: 'flex-start',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedPermIds.has(p.id_permiso)}
+                                onChange={() => togglePermiso(p.id_permiso)}
+                                disabled={saving}
+                              />
+                              <span>
+                                <strong>{p.codigo}</strong>
+                                {' — '}
+                                {p.nombre}
+                              </span>
+                            </label>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className={styles.muted} style={{ marginTop: 6, fontSize: '0.8rem' }}>
+                {selectedPermIds.size} permiso(s) seleccionado(s). Se guardan al pulsar Guardar.
+              </p>
+            </div>
+
             <div className={styles.formActions}>
               <button type="button" className={styles.btnGhost} onClick={closeModal} disabled={saving}>
                 Cancelar

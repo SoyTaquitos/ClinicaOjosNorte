@@ -14,6 +14,7 @@ Auth endpoints:
   PATCH /api/v1/auth/me/
   POST  /api/v1/auth/change-password/
   POST  /api/v1/auth/reset-password/
+  POST  /api/v1/auth/reset-password/verify-code/
   POST  /api/v1/auth/reset-password/confirm/
 
 Users CRUD:
@@ -44,7 +45,7 @@ from .login_lockout import (
     record_failure,
     record_success,
 )
-from .models import ConfiguracionLoginSeguridad, Usuario
+from .models import ConfiguracionLoginSeguridad, TipoUsuario, Usuario
 from .serializers import (
     BAD_CREDENTIALS_MSG,
     CambiarPasswordSerializer,
@@ -53,10 +54,11 @@ from .serializers import (
     LoginSerializer,
     PerfilSerializer,
     RecuperarPasswordSerializer,
+    VerificarCodigoRecuperacionSerializer,
     UsuarioCreateSerializer,
     UsuarioSerializer,
 )
-from .tokens import crear_token_recuperacion, validar_token_recuperacion
+from .tokens import buscar_token_recuperacion_valido, crear_token_recuperacion
 
 logger = logging.getLogger('apps')
 
@@ -248,7 +250,7 @@ class ResetPasswordView(APIView):
         email = serializer.validated_data['email']
 
         try:
-            usuario = Usuario.objects.get(email=email, estado='ACTIVO')
+            usuario = Usuario.objects.get(email__iexact=email.strip(), estado='ACTIVO')
             token_obj = crear_token_recuperacion(usuario)
             enviar_recuperacion_password(usuario, token_obj.token)
             registrar_bitacora(
@@ -262,6 +264,31 @@ class ResetPasswordView(APIView):
         return Response({'mensaje': 'Si el correo existe, recibirás instrucciones en breve.'})
 
 
+class ResetPasswordVerifyCodeView(APIView):
+    """
+    POST /api/auth/reset-password/verify-code/
+    Comprueba email + código sin consumir el código (siguiente paso: confirm con nueva contraseña).
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = VerificarCodigoRecuperacionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        codigo = serializer.validated_data['codigo']
+
+        token_obj, err = buscar_token_recuperacion_valido(email, codigo)
+        if err == 'expired':
+            return Response(
+                {'error': 'El código expiró. Solicita un correo nuevo desde el inicio.'},
+                status=400,
+            )
+        if err == 'invalid' or not token_obj:
+            return Response({'error': 'Código incorrecto.'}, status=400)
+
+        return Response({'mensaje': 'Código verificado. Ya puedes definir tu nueva contraseña.'})
+
+
 class ResetPasswordConfirmView(APIView):
     """POST /api/v1/auth/reset-password/confirm/"""
     permission_classes = [AllowAny]
@@ -270,9 +297,16 @@ class ResetPasswordConfirmView(APIView):
         serializer = ConfirmarPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        token_obj, error = validar_token_recuperacion(serializer.validated_data['token'])
-        if error:
-            return Response({'error': error}, status=400)
+        email = serializer.validated_data['email']
+        codigo = serializer.validated_data['codigo']
+        token_obj, err = buscar_token_recuperacion_valido(email, codigo)
+        if err == 'expired':
+            return Response(
+                {'error': 'El código expiró. Solicita un correo nuevo desde el inicio.'},
+                status=400,
+            )
+        if err == 'invalid' or not token_obj:
+            return Response({'error': 'Código incorrecto.'}, status=400)
 
         usuario = token_obj.id_usuario
         usuario.set_password(serializer.validated_data['password_nuevo'])
@@ -334,6 +368,28 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         )
         instance.delete()
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.pk == request.user.pk:
+            return Response(
+                {'error': 'No puedes eliminar tu propia cuenta.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if (
+            instance.tipo_usuario == TipoUsuario.ADMIN
+            and request.user.tipo_usuario != TipoUsuario.ADMIN
+        ):
+            return Response(
+                {
+                    'error': (
+                        'Solo un administrador del sistema puede eliminar cuentas '
+                        'de tipo Admin del sistema.'
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().destroy(request, *args, **kwargs)
+
     @action(detail=True, methods=['post'])
     def activar(self, request, pk=None):
         """POST /api/v1/users/{id}/activar/"""
@@ -353,6 +409,11 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     def bloquear(self, request, pk=None):
         """POST /api/v1/users/{id}/bloquear/"""
         usuario = self.get_object()
+        if usuario.pk == request.user.pk:
+            return Response(
+                {'error': 'No puedes bloquear tu propia cuenta.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         usuario.estado = 'BLOQUEADO'
         usuario.is_active = False
         usuario.save(update_fields=['estado', 'is_active'])

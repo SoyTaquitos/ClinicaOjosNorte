@@ -8,6 +8,7 @@ Lista priorizada de los siguientes pasos a realizar en el proyecto Oftalmología
 - [ ] Cliente Next: interceptar 401 → intentar `POST /api/auth/token/refresh/` con refresh guardado; solo si falla, limpiar sesión y mandar a `/login`.
 
 ## Corto Plazo
+- [x] Frontend + API: flujo «olvidé contraseña» con código por correo (`/forgot-password`, MailHog en dev).
 - [x] Frontend: Login contra API real; tokens en localStorage; Axios + Bearer; logout API.
 - [x] Frontend: Guard de rutas `/dashboard/*` (redirección si no hay access token).
 - [x] Frontend: Bitácora conectada a `GET /api/bitacora/` (paginación y filtros).

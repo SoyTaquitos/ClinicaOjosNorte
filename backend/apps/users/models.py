@@ -2,7 +2,7 @@
 apps/users/models.py
 Dominio exclusivo de autenticación y usuarios del sistema.
   - Usuario (CustomUser): identidad y acceso al sistema (personal interno).
-  - TokenRecuperacion: tokens de un solo uso para reset de contraseña.
+  - TokenRecuperacion: códigos numéricos de un solo uso para reset de contraseña (TTL vía settings).
 
 Los pacientes NO tienen cuenta de usuario; son gestionados por el personal.
 
@@ -126,13 +126,13 @@ class BloqueoIntentoLogin(models.Model):
 
 
 class TokenRecuperacion(models.Model):
-    """Token de un solo uso para restablecimiento de contraseña (2h vigencia)."""
+    """Código numérico de un solo uso para restablecimiento de contraseña (vigencia breve, ver settings)."""
     id_token = models.BigAutoField(primary_key=True)
     id_usuario = models.ForeignKey(
         Usuario, on_delete=models.CASCADE,
         db_column='id_usuario', related_name='tokens_recuperacion',
     )
-    token = models.TextField(unique=True)
+    token = models.TextField(db_index=True)
     expira_en = models.DateTimeField()
     usado = models.BooleanField(default=False)
     fecha_creacion = models.DateTimeField(default=timezone.now)

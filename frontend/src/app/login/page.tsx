@@ -240,9 +240,9 @@ export default function LoginPage() {
                 />
                 Recordarme
               </label>
-              <a href="#" className={styles.forgotLink}>
+              <Link href="/forgot-password" className={styles.forgotLink}>
                 ¿Olvidaste tu contraseña?
-              </a>
+              </Link>
             </div>
 
             <button type="submit" className={styles.submitBtn} disabled={formLocked}>

@@ -30,17 +30,18 @@ def enviar_bienvenida(usuario):
         logger.warning(f'[email:bienvenida] {usuario.email} — {exc}')
 
 
-def enviar_recuperacion_password(usuario, token_str):
-    """Email con enlace de recuperación de contraseña (expira en 2h)."""
+def enviar_recuperacion_password(usuario, codigo_str):
+    """Email con código numérico de un solo uso (vigencia según PASSWORD_RESET_CODE_TTL_SECONDS)."""
     frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-    reset_url = f'{frontend_url}/auth/reset-password?token={token_str}'
+    ttl = int(getattr(settings, 'PASSWORD_RESET_CODE_TTL_SECONDS', 30) or 30)
 
-    subject = 'Recuperación de contraseña — Clínica de Ojos Norte'
+    subject = 'Código de recuperación — Clínica de Ojos Norte'
     message = (
         f'Hola {usuario.nombres},\n\n'
-        f'Recibimos una solicitud para restablecer tu contraseña.\n\n'
-        f'Accede al siguiente enlace (válido 2 horas):\n'
-        f'{reset_url}\n\n'
+        f'Usa este código para continuar con «Olvidé mi contraseña» en el portal:\n\n'
+        f'     {codigo_str}\n\n'
+        f'Válido {ttl} segundos. Luego deberás solicitar uno nuevo.\n'
+        f'Página: {frontend_url}/forgot-password\n\n'
         f'Si no solicitaste este cambio, ignora este mensaje.\n\n'
         f'Clínica de Ojos Norte'
     )

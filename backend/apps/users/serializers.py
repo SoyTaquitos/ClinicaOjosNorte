@@ -9,7 +9,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import ConfiguracionLoginSeguridad, TokenRecuperacion, Usuario
+from .models import ConfiguracionLoginSeguridad, Usuario
 
 BAD_CREDENTIALS_MSG = 'Credenciales incorrectas.'
 
@@ -81,8 +81,14 @@ class RecuperarPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
 
+class VerificarCodigoRecuperacionSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    codigo = serializers.CharField(max_length=32)
+
+
 class ConfirmarPasswordSerializer(serializers.Serializer):
-    token = serializers.CharField()
+    email = serializers.EmailField()
+    codigo = serializers.CharField(max_length=32)
     password_nuevo = serializers.CharField(write_only=True, validators=[validate_password])
     password_nuevo2 = serializers.CharField(write_only=True)
 

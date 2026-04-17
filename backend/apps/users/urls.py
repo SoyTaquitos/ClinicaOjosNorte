@@ -12,6 +12,7 @@ Auth:
   PATCH /api/v1/auth/me/
   POST  /api/v1/auth/change-password/
   POST  /api/v1/auth/reset-password/
+  POST  /api/v1/auth/reset-password/verify-code/
   POST  /api/v1/auth/reset-password/confirm/
   POST  /api/v1/auth/token/refresh/
   POST  /api/v1/auth/token/verify/
@@ -30,6 +31,7 @@ from .views import (
     LogoutView,
     MeView,
     ResetPasswordConfirmView,
+    ResetPasswordVerifyCodeView,
     ResetPasswordView,
     UsuarioViewSet,
 )
@@ -52,6 +54,12 @@ urlpatterns = [
     path('auth/change-password', ChangePasswordView.as_view()),
     path('auth/reset-password/', ResetPasswordView.as_view(), name='auth-reset-password'),
     path('auth/reset-password', ResetPasswordView.as_view()),
+    path(
+        'auth/reset-password/verify-code/',
+        ResetPasswordVerifyCodeView.as_view(),
+        name='auth-reset-verify-code',
+    ),
+    path('auth/reset-password/verify-code', ResetPasswordVerifyCodeView.as_view()),
     path('auth/reset-password/confirm/', ResetPasswordConfirmView.as_view(), name='auth-reset-confirm'),
     path('auth/reset-password/confirm', ResetPasswordConfirmView.as_view()),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),

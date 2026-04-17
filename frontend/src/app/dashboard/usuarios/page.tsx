@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useDashboardUser } from '@/contexts/DashboardUserContext';
+import type { MeProfile } from '@/lib/meProfile';
 import styles from '../iam.module.css';
 
 interface UsuarioRow {
@@ -42,16 +44,34 @@ const ESTADO_OPTIONS = [
 
 function apiErr(e: unknown): string {
   const ax = e as {
-    response?: { data?: Record<string, string[] | string> | string };
+    response?: { data?: Record<string, unknown> | string };
   };
   const d = ax.response?.data;
   if (typeof d === 'string') return d;
-  if (d && typeof d === 'object') {
+  if (d && typeof d === 'object' && !Array.isArray(d)) {
+    if (typeof d.error === 'string') return d.error;
+    if (typeof d.detail === 'string') return d.detail;
     const vals = Object.values(d).flat();
     const first = vals.find((x) => typeof x === 'string') as string | undefined;
     if (first) return first;
   }
   return 'Error al procesar la solicitud.';
+}
+
+function canDeleteUser(me: MeProfile | null, row: UsuarioRow): boolean {
+  if (!me) return false;
+  if (row.id === me.id) return false;
+  if (row.tipo_usuario === 'ADMIN' && me.tipo_usuario !== 'ADMIN') return false;
+  return true;
+}
+
+function deleteBlockedReason(me: MeProfile | null, row: UsuarioRow): string | null {
+  if (!me) return 'Cargando sesión…';
+  if (row.id === me.id) return 'No puedes eliminar tu propia cuenta.';
+  if (row.tipo_usuario === 'ADMIN' && me.tipo_usuario !== 'ADMIN') {
+    return 'Solo un administrador del sistema puede eliminar cuentas Admin.';
+  }
+  return null;
 }
 
 const emptyCreate = {
@@ -67,6 +87,7 @@ const emptyCreate = {
 };
 
 export default function UsuariosPage() {
+  const { me } = useDashboardUser();
   const [rows, setRows] = useState<UsuarioRow[]>([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -345,7 +366,8 @@ export default function UsuariosPage() {
                           type="button"
                           className={`${styles.btnSm} ${styles.btn}`}
                           onClick={() => bloquear(u.id)}
-                          disabled={u.estado === 'BLOQUEADO'}
+                          disabled={u.estado === 'BLOQUEADO' || u.id === me?.id}
+                          title={u.id === me?.id ? 'No puedes bloquear tu propia cuenta.' : undefined}
                         >
                           Bloquear
                         </button>
@@ -353,6 +375,8 @@ export default function UsuariosPage() {
                           type="button"
                           className={`${styles.btnSm} ${styles.btnDanger}`}
                           onClick={() => remove(u.id, u.username)}
+                          disabled={!canDeleteUser(me, u)}
+                          title={deleteBlockedReason(me, u) ?? undefined}
                         >
                           Eliminar
                         </button>

@@ -256,6 +256,14 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@oftalmologia.local')
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 
+# Código numérico en email (MailHog / SMTP). TTL muy corto dificulta abuso por fuerza bruta.
+PASSWORD_RESET_CODE_TTL_SECONDS = config(
+    'PASSWORD_RESET_CODE_TTL_SECONDS', default=30, cast=int
+)
+PASSWORD_RESET_CODE_LENGTH = config(
+    'PASSWORD_RESET_CODE_LENGTH', default=6, cast=int
+)
+
 # =============================================================================
 # LOGGING
 # =============================================================================

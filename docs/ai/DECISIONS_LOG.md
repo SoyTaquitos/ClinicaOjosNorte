@@ -10,7 +10,12 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
----
+### Registro 7
+
+**Fecha:** 2026-04-17
+**Decisión:** Recuperación de contraseña por **código numérico** enviado por correo (MailHog/SMTP), con vigencia **`PASSWORD_RESET_CODE_TTL_SECONDS`** (por defecto 30 s, acotado 10–3600 s en código) y longitud **`PASSWORD_RESET_CODE_LENGTH`** (4–12 dígitos). Flujo API: `POST /api/auth/reset-password/` → `POST .../verify-code/` → `POST .../confirm/` con `email` + `codigo` + nueva contraseña. Se quitó `unique` global en `tokens_recuperacion.token` para permitir el mismo patrón numérico en distintos usuarios (búsqueda por usuario + código).
+**Motivo:** Pedido de producto: verificación tipo OTP en pantalla dedicada (`/forgot-password`) sin depender de enlaces con token largo.
+**Impacto:** Migración `users.0004_alter_tokenrecuperacion_token`; variables nuevas en `.env.example`; **breaking** para clientes que usaban `POST .../confirm/` solo con campo `token` — ahora requieren `email` y `codigo`.
 
 ### Registro 6
 
