@@ -1,14 +1,10 @@
 """
 apps/users/models.py
-Dominio exclusivo de autenticación y usuarios del sistema.
-  - Usuario (CustomUser): identidad y acceso al sistema (personal interno).
-  - TokenRecuperacion: códigos numéricos de un solo uso para reset de contraseña (TTL vía settings).
+Modelo de identidad del personal (AUTH_USER_MODEL).
 
-Los pacientes NO tienen cuenta de usuario; son gestionados por el personal.
-
-Roles y Permisos viven en sus propias apps:
-  → apps/roles/models.py    (Rol, UsuarioRol, RolPermiso)
-  → apps/permisos/models.py (Permiso)
+Seguridad de login, bloqueo por intentos y tokens de recuperación → apps.security.models
+Flujos HTTP login/JWT/reset → apps.auth
+Roles y permisos → apps.roles, apps.permisos
 """
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
@@ -34,9 +30,6 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     """
     Usuarios del sistema: personal administrativo, médicos y especialistas.
     Los pacientes NO son usuarios; son gestionados como registros por el personal.
-    Extiende AbstractBaseUser para control total de autenticación.
-    AbstractBaseUser ya provee: password, last_login.
-    PermissionsMixin agrega: is_superuser, groups, user_permissions.
     """
     username = models.CharField(max_length=50, unique=True)
     email = models.EmailField(max_length=120, unique=True)
@@ -74,74 +67,3 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self):
         return self.nombres
-
-
-class ConfiguracionLoginSeguridad(models.Model):
-    """
-    Fila única (pk=1): umbral de intentos y minutos de bloqueo por login.
-    Solo ADMIN puede cambiarla vía API del panel.
-    """
-    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
-    max_intentos_fallidos = models.PositiveSmallIntegerField(default=5)
-    minutos_bloqueo = models.PositiveSmallIntegerField(default=10)
-
-    class Meta:
-        db_table = 'configuracion_login_seguridad'
-        verbose_name = 'Configuración seguridad login'
-        verbose_name_plural = 'Configuración seguridad login'
-
-    def save(self, *args, **kwargs):
-        self.pk = 1
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f'{self.max_intentos_fallidos} intentos / {self.minutos_bloqueo} min'
-
-    @classmethod
-    def get_solo(cls):
-        obj, _ = cls.objects.get_or_create(
-            pk=1,
-            defaults={
-                'max_intentos_fallidos': 5,
-                'minutos_bloqueo': 10,
-            },
-        )
-        return obj
-
-
-class BloqueoIntentoLogin(models.Model):
-    """Estado de intentos fallidos por clave de login (email en minúsculas o username tal cual se usa en el formulario)."""
-
-    login_key = models.CharField(max_length=120, unique=True, db_index=True)
-    intentos_fallidos = models.PositiveSmallIntegerField(default=0)
-    bloqueado_hasta = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        db_table = 'bloqueo_intento_login'
-        verbose_name = 'Bloqueo intento login'
-        verbose_name_plural = 'Bloqueos intento login'
-
-    def __str__(self):
-        return f'{self.login_key} ({self.intentos_fallidos})'
-
-
-class TokenRecuperacion(models.Model):
-    """Código numérico de un solo uso para restablecimiento de contraseña (vigencia breve, ver settings)."""
-    id_token = models.BigAutoField(primary_key=True)
-    id_usuario = models.ForeignKey(
-        Usuario, on_delete=models.CASCADE,
-        db_column='id_usuario', related_name='tokens_recuperacion',
-    )
-    token = models.TextField(db_index=True)
-    expira_en = models.DateTimeField()
-    usado = models.BooleanField(default=False)
-    fecha_creacion = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        db_table = 'tokens_recuperacion'
-        verbose_name = 'Token de Recuperación'
-        verbose_name_plural = 'Tokens de Recuperación'
-        ordering = ['-fecha_creacion']
-
-    def __str__(self):
-        return f'Token {self.id_token} — {self.id_usuario} [usado={self.usado}]'

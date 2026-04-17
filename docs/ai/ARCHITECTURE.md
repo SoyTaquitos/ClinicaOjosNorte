@@ -17,6 +17,7 @@ Sistema de Información/Gestión Clínica Oftalmológica. Monorepo estructurado 
 
 ## Organización Modular y Responsabilidades
 - `/backend`: API REST (Django + DRF). Responsable de validación, DB, seguridad JWT y lógica de negocio.
+- **Django apps (dominio):** `apps.auth` — rutas y vistas de sesión (login, logout, `/auth/me`, refresh/verify JWT, reset de contraseña, `security/login-config`); **sin modelos propios**. `apps.security` — modelos y lógica de **bloqueo por intentos de login**, **configuración de umbral** y **tokens/códigos de recuperación de contraseña** (mismas tablas que antes bajo `users`; migración solo de estado). `apps.users` — solo **`Usuario`** (`AUTH_USER_MODEL`) + **CRUD** `/api/users/`.
 - `/frontend`: Panel Web de Gestión (Next.js). Administradores, médicos y personal administrativo.
 - `/infra` o raíz: Docker, Docker Compose y entorno local.
 - **`BaseDeDatos.sql`** (raíz del repo): esquema de referencia en DBML; debe coincidir con los modelos Django (ver `CURRENT_STATE.md`).

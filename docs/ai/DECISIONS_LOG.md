@@ -10,6 +10,20 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+### Registro 9
+
+**Fecha:** 2026-04-17
+**Decisión:** Nueva app **`apps.security`** (`label=oftalmologia_security`) con modelos `ConfiguracionLoginSeguridad`, `BloqueoIntentoLogin`, `TokenRecuperacion` (mismos `db_table`), más `login_lockout.py`, `tokens.py`, `emails.py` y admin asociado. **`apps.users`** reduce a `Usuario` + CRUD + managers. Migración **`security.0001_initial`** con `SeparateDatabaseAndState` (solo estado); **`users.0005`** elimina esos modelos del estado de `users` sin `DROP TABLE`.
+**Motivo:** Menos ruido en la app de usuario; agrupar políticas de acceso y recuperación en un módulo coherente.
+**Impacto:** Imports actualizados en `apps.auth`; orden `INSTALLED_APPS`: `users` → `security` → `auth`.
+
+### Registro 8
+
+**Fecha:** 2026-04-17
+**Decisión:** Extraer autenticación HTTP a la app Django **`apps.auth`** (paquete `apps/auth/` con submódulos `views/login.py`, `logout.py`, `profile.py`, `password_change.py`, `password_reset.py`, `security.py` + `serializers.py` + `urls.py`). `apps.users` conserva modelos (`Usuario`, recuperación, bloqueo login), `tokens.py`, `emails.py`, `login_lockout.py` y solo el **ViewSet** de usuarios. `INSTALLED_APPS`: `apps.auth` con `AppConfig.label = 'oftalmologia_auth'` para no colisionar con `django.contrib.auth`.
+**Motivo:** Modularidad por responsabilidad; `users` dejaba de ser solo “dominio usuario”.
+**Impacto:** `config/urls.py` incluye `apps.auth.urls` antes de `apps.users.urls`. Rutas `/api/auth/*` y `/api/security/login-config` sin cambio de path.
+
 ### Registro 7
 
 **Fecha:** 2026-04-17

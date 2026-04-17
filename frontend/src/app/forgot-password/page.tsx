@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ChevronLeft, Eye, EyeOff, KeyRound, Lock, Mail } from 'lucide-react';
+import { ChevronLeft, CircleCheck, Eye, EyeOff, Info, KeyRound, Lock, Mail } from 'lucide-react';
 import EyeIllustration from '@/components/EyeIllustration';
 import { browserApiOrigin } from '@/lib/api';
 import { getPublicAppName, getPublicAppTagline } from '@/lib/siteConfig';
@@ -51,9 +51,6 @@ export default function ForgotPasswordPage() {
       });
       await res.json().catch(() => ({}));
       setEmailRequested(true);
-      setInfo(
-        'Si el correo existe en el sistema, recibirás un código. Revisa la bandeja (en desarrollo: MailHog en http://localhost:8025).'
-      );
     } catch {
       setError('No se pudo conectar con el servidor.');
     } finally {
@@ -114,12 +111,14 @@ export default function ForgotPasswordPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        const pwErr =
+          typeof data.password_nuevo === 'string'
+            ? data.password_nuevo
+            : Array.isArray(data.password_nuevo) && typeof data.password_nuevo[0] === 'string'
+              ? data.password_nuevo[0]
+              : undefined;
         setError(
-          typeof data.error === 'string'
-            ? data.error
-            : typeof data.password_nuevo === 'string'
-              ? data.password_nuevo
-              : 'No se pudo actualizar la contraseña.'
+          typeof data.error === 'string' ? data.error : pwErr ?? 'No se pudo actualizar la contraseña.'
         );
         setLoading(false);
         return;
@@ -191,10 +190,47 @@ export default function ForgotPasswordPage() {
               <span>{error}</span>
             </div>
           ) : null}
-          {info && !error ? (
-            <div className={styles.errorBanner} role="status" style={{ borderColor: 'var(--color-primary, #7c3aed)', background: '#f5f3ff' }}>
-              <Lock size={15} />
-              <span>{info}</span>
+          {step === 1 && emailRequested && !error ? (
+            <div className={styles.infoBanner} role="status">
+              <Info className={styles.infoBannerIcon} size={20} strokeWidth={2} aria-hidden />
+              <div className={styles.infoBannerBody}>
+                <span className={styles.infoBannerTitle}>Revisá tu correo</span>
+                <p className={styles.infoBannerText}>
+                  Si esa cuenta está registrada, te enviamos un código de un solo uso. Puede tardar unos
+                  segundos en llegar.
+                </p>
+                <p className={styles.infoBannerHint}>
+                  En desarrollo los correos no salen a internet: abrí{' '}
+                  <a
+                    className={styles.infoBannerLink}
+                    href="http://localhost:8025"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    MailHog (localhost:8025)
+                  </a>{' '}
+                  y buscá el mensaje con el código.
+                </p>
+              </div>
+            </div>
+          ) : null}
+          {info && !error && !(step === 1 && emailRequested) ? (
+            <div
+              className={step === 3 ? `${styles.infoBanner} ${styles.infoBannerSuccess}` : styles.infoBanner}
+              role="status"
+            >
+              <CircleCheck className={styles.infoBannerIcon} size={20} strokeWidth={2} aria-hidden />
+              <div className={styles.infoBannerBody}>
+                <p className={styles.infoBannerText}>{info}</p>
+              </div>
+            </div>
+          ) : null}
+          {info && !error && step === 1 && emailRequested ? (
+            <div className={`${styles.infoBanner} ${styles.infoBannerSuccess}`} role="status" style={{ marginTop: 'var(--space-3)' }}>
+              <CircleCheck className={styles.infoBannerIcon} size={20} strokeWidth={2} aria-hidden />
+              <div className={styles.infoBannerBody}>
+                <p className={styles.infoBannerText}>{info}</p>
+              </div>
             </div>
           ) : null}
 
@@ -238,6 +274,7 @@ export default function ForgotPasswordPage() {
                   disabled={formLocked}
                   onClick={() => {
                     setError('');
+                    setInfo('');
                     setStep(2);
                   }}
                 >

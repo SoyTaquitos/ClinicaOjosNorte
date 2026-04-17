@@ -9,10 +9,10 @@
 - **Bloqueo temporal por login:** tras N intentos fallidos con la misma clave (email en minúsculas o username tal cual), el login devuelve **429** con `retry_after_seconds`. Umbrales en BD: `configuracion_login_seguridad` (fila única); estado por clave en `bloqueo_intento_login`. **Solo ADMIN:** `GET/PATCH /api/security/login-config/`. Panel: `/dashboard/seguridad-login`. Independiente del estado manual `BLOQUEADO` del usuario.
 - **Paciente:** sin FK a `usuarios`.
 - **Consultas médicas:** `apps.consultas` — `consultas_medicas` (OneToOne con `citas`, FK a `historias_clinicas` y `especialistas`); al crear consulta, la cita pasa a `ATENDIDA`.
-- **API bajo** `/api/` (sin prefijo `v1` en `config/urls.py`). Incluye `apps.core`, `users`, `roles`, `permisos`, `bitacora`.
+- **API bajo** `/api/` (sin prefijo `v1` en `config/urls.py`). Incluye `apps.core`, **`apps.auth`**, **`apps.security`** (modelos de bloqueo login + recuperación; sin rutas propias), **`apps.users`** (solo `Usuario` + CRUD `/api/users/`), `roles`, `permisos`, `bitacora`.
 - **Bitácora:** `GET /api/bitacora/` (lectura; permisos según rol); escritura desde el backend en operaciones que registren eventos.
 - **Seed unificado:** `python manage.py seed` en `apps/core/management/commands/seed.py` — ejecuta `seeders.seed_admin`, `seeders.seed_roles`, `seeders.seed_permisos`. Opción `--only admin|roles|permisos`. Variables opcionales: `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NOMBRES`, `ADMIN_APELLIDOS`.
-- **Recuperación de contraseña:** `POST /api/auth/reset-password/` (email) envía correo con código numérico; `POST /api/auth/reset-password/verify-code/` (`email`, `codigo`); `POST /api/auth/reset-password/confirm/` (`email`, `codigo`, `password_nuevo`, `password_nuevo2`). TTL y longitud: `PASSWORD_RESET_CODE_TTL_SECONDS`, `PASSWORD_RESET_CODE_LENGTH` en `settings`/`.env`. Correo vía `EMAIL_HOST` (p. ej. MailHog `mailhog:1025` en Docker).
+- **Recuperación de contraseña:** `POST /api/auth/reset-password/` (email) envía correo con código numérico; `POST /api/auth/reset-password/verify-code/` (`email`, `codigo`); `POST /api/auth/reset-password/confirm/` (`email`, `codigo`, `password_nuevo`, `password_nuevo2`). TTL y longitud: `PASSWORD_RESET_CODE_TTL_SECONDS` (por defecto **180 s**, ~3 min), `PASSWORD_RESET_CODE_LENGTH` en `settings`/`.env`. Tras **verify-code** válido, el backend **renueva `expira_en`** del mismo token para que confirmar no falle por tiempo consumido entre pasos. Correo vía `EMAIL_HOST` (p. ej. MailHog `mailhog:1025` en Docker).
 
 ## Frontend (Next.js)
 - **Proxy API:** `next.config.js` reescribe `/api/:path*` → base interna (`INTERNAL_API_URL` o `NEXT_PUBLIC_API_URL` o `http://localhost:8000/api`) para evitar CORS en desarrollo y en Docker (servidor Next → `http://backend:8000/api`).
@@ -34,7 +34,9 @@ El archivo **`BaseDeDatos.sql`** (DBML para dbdiagram.io) debe mantenerse alinea
 | App | Rol |
 |-----|-----|
 | `apps.core` | health, comando `seed` |
-| `apps.users` | Usuario, auth JWT, TokenRecuperacion |
+| `apps.users` | modelo `Usuario` (AUTH_USER_MODEL), CRUD `/api/users/` |
+| `apps.security` | bloqueo por intentos de login, config umbral, tokens recuperación contraseña |
+| `apps.auth` | login, logout, JWT, `/auth/me`, reset password, `security/login-config` |
 | `apps.roles`, `apps.permisos` | RBAC |
 | `apps.bitacora` | auditoría |
 | `apps.pacientes` | Paciente |

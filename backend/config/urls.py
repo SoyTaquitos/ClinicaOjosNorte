@@ -12,7 +12,10 @@ api_patterns = [
     # Core — Health check
     path('', include('apps.core.urls')),
 
-    # Auth + Usuarios
+    # Autenticación y sesión (login, logout, /auth/me, JWT, reset password, security/login-config)
+    path('', include('apps.auth.urls')),
+
+    # Usuarios (CRUD /api/users/)
     path('', include('apps.users.urls')),
 
     # Roles y asignaciones usuario-rol

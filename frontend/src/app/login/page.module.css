@@ -478,6 +478,66 @@
   animation: fadeInDown 0.3s ease both;
 }
 
+.infoBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: linear-gradient(145deg, rgba(124, 58, 237, 0.09), rgba(167, 139, 250, 0.06));
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  color: #5b21b6;
+  animation: fadeInDown 0.3s ease both;
+}
+
+.infoBannerSuccess {
+  background: linear-gradient(145deg, rgba(22, 163, 74, 0.1), rgba(34, 197, 94, 0.05));
+  border-color: rgba(22, 163, 74, 0.28);
+  color: #166534;
+}
+
+.infoBannerIcon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.infoBannerBody {
+  min-width: 0;
+}
+
+.infoBannerTitle {
+  display: block;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+
+.infoBannerText {
+  margin: 0;
+  line-height: 1.55;
+  color: inherit;
+  opacity: 0.95;
+}
+
+.infoBannerHint {
+  margin: 0.55rem 0 0;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  opacity: 0.88;
+}
+
+.infoBannerLink {
+  color: #6d28d9;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.infoBannerLink:hover {
+  color: #5b21b6;
+}
+
 /* ── Credenciales de desarrollo (bajo la tarjeta) ── */
 .devHint {
   position: relative;

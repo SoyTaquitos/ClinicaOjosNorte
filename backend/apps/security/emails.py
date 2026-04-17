@@ -1,8 +1,6 @@
 """
-apps/users/emails.py
-Correos transaccionales del sistema.
+Correos transaccionales ligados a cuentas (bienvenida, recuperación de contraseña).
 En desarrollo → Mailhog (http://localhost:8025).
-En producción → SMTP real configurado en .env.
 """
 import logging
 
@@ -30,17 +28,32 @@ def enviar_bienvenida(usuario):
         logger.warning(f'[email:bienvenida] {usuario.email} — {exc}')
 
 
+def _ttl_texto_legible(segundos: int) -> str:
+    if segundos >= 3600:
+        h = segundos // 3600
+        resto = segundos % 3600
+        if resto >= 60:
+            m = resto // 60
+            return f'{h} h {m} min'
+        return f'{h} h'
+    if segundos >= 60:
+        m = segundos // 60
+        return f'{m} minuto(s)'
+    return f'{segundos} segundos'
+
+
 def enviar_recuperacion_password(usuario, codigo_str):
     """Email con código numérico de un solo uso (vigencia según PASSWORD_RESET_CODE_TTL_SECONDS)."""
     frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-    ttl = int(getattr(settings, 'PASSWORD_RESET_CODE_TTL_SECONDS', 30) or 30)
+    ttl = int(getattr(settings, 'PASSWORD_RESET_CODE_TTL_SECONDS', 180) or 180)
+    ttl_txt = _ttl_texto_legible(ttl)
 
     subject = 'Código de recuperación — Clínica de Ojos Norte'
     message = (
         f'Hola {usuario.nombres},\n\n'
         f'Usa este código para continuar con «Olvidé mi contraseña» en el portal:\n\n'
         f'     {codigo_str}\n\n'
-        f'Válido {ttl} segundos. Luego deberás solicitar uno nuevo.\n'
+        f'Válido {ttl_txt} (aprox. {ttl} s). Tras verificar el código tendrás el mismo tiempo para guardar la nueva contraseña.\n'
         f'Página: {frontend_url}/forgot-password\n\n'
         f'Si no solicitaste este cambio, ignora este mensaje.\n\n'
         f'Clínica de Ojos Norte'
