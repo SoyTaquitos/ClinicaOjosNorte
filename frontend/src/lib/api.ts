@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { clearTokens, getAccessToken, getRefreshToken } from './auth';
+import { clearTokens, getAccessToken, getRefreshToken, saveTokens } from './auth';
 
 /**
  * Origen del backend en el navegador: `NEXT_PUBLIC_API_URL` en `.env` (p. ej. …/api).
@@ -19,6 +19,43 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+let refreshPromise: Promise<string | null> | null = null;
+
+function resolveApiBaseURL(): string {
+  const origin = browserApiOrigin();
+  return origin || '';
+}
+
+async function tryRefreshAccessToken(): Promise<string | null> {
+  const refresh = getRefreshToken();
+  if (!refresh) return null;
+
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(
+        '/api/auth/token/refresh/',
+        { refresh },
+        {
+          baseURL: resolveApiBaseURL(),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+      .then((res) => {
+        const nextAccess = res.data?.access as string | undefined;
+        const nextRefresh = (res.data?.refresh as string | undefined) ?? refresh;
+        if (!nextAccess) return null;
+        saveTokens(nextAccess, nextRefresh);
+        return nextAccess;
+      })
+      .catch(() => null)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
+}
+
 api.interceptors.request.use((config) => {
   const origin = browserApiOrigin();
   if (origin) {
@@ -34,7 +71,17 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (r) => r,
   async (err) => {
-    if (err.response?.status === 401 && typeof window !== 'undefined') {
+    const original = err.config as (typeof err.config & { _retry?: boolean }) | undefined;
+
+    if (err.response?.status === 401 && typeof window !== 'undefined' && original && !original._retry) {
+      original._retry = true;
+      const nextAccess = await tryRefreshAccessToken();
+      if (nextAccess) {
+        original.headers = original.headers ?? {};
+        original.headers.Authorization = `Bearer ${nextAccess}`;
+        return api(original);
+      }
+
       clearTokens();
       window.location.href = '/login';
     }

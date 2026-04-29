@@ -50,6 +50,7 @@ THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'drf_spectacular',
     'corsheaders',
     'django_filters',
 ]
@@ -62,6 +63,10 @@ LOCAL_APPS = [
     'apps.roles',     # Rol, UsuarioRol, RolPermiso
     'apps.permisos',  # Permiso (granular por módulo)
     'apps.bitacora',  # Registro de auditoría del sistema
+    'apps.pacientes',
+    'apps.especialistas',
+    'apps.citas',
+    'apps.consultas',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -178,6 +183,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
@@ -198,6 +204,13 @@ REST_FRAMEWORK = {
         'user': '1000/hour',
     },
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%S%z',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Oftalmologia SI1 API',
+    'DESCRIPTION': 'API REST del sistema de gestion clinica oftalmologica.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
 
 # =============================================================================

@@ -10,6 +10,104 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+### Registro 23
+
+**Fecha:** 2026-04-29
+**Decisión:** Evolucionar KPI drilldown con paginación server-side, export CSV y presets rápidos de período en UI.
+**Motivo:** Mejorar usabilidad analítica y escalabilidad de consulta cuando crece el volumen de citas.
+**Impacto:** Endpoint `kpi/citas-drilldown` paginado, endpoint `kpi/citas-drilldown/export`, y UX de filtros rápidos en `/dashboard/kpi`.
+
+### Registro 22
+
+**Fecha:** 2026-04-29
+**Decisión:** Extender módulo KPI con filtros de rango de fechas, endpoint drilldown de citas por estado y cache de snapshots (TTL 5 min).
+**Motivo:** Mejorar análisis operacional en tiempo real sin penalizar consultas repetidas al backend y permitir investigación de causas desde la UI.
+**Impacto:** Nuevos parámetros `date_from/date_to` en endpoints KPI, nuevo `GET /api/kpi/citas-drilldown` y frontend con drilldown interactivo.
+
+### Registro 21
+
+**Fecha:** 2026-04-29
+**Decisión:** Implementar un dashboard KPI clínico inicial con dos endpoints agregados (`kpi/summary`, `kpi/operativo`) y vista frontend responsiva dedicada.
+**Motivo:** Dar visibilidad ejecutiva/operativa inmediata sobre adopción clínica (atención, cancelación, carga diaria por especialista) sin depender de BI externo.
+**Impacto:** Nuevo módulo `/dashboard/kpi`, navegación actualizada en sidebar y base de métricas reusable para iteraciones de drilldown.
+
+### Registro 20
+
+**Fecha:** 2026-04-29
+**Decisión:** Añadir seeder `consultas-demo` para completar datos de pruebas del flujo cita -> consulta -> estado `ATENDIDA`.
+**Motivo:** Permitir validación rápida del módulo de consultas y de transiciones clínicas sin carga manual repetitiva.
+**Impacto:** Nuevo archivo `backend/seeders/seed_consultas_demo.py`; `manage.py seed` ahora soporta `--only consultas-demo`.
+
+### Registro 19
+
+**Fecha:** 2026-04-29
+**Decisión:** Incorporar seeder clínico único (`seed_clinica`) dentro del comando `manage.py seed` con flag `--only clinica`.
+**Motivo:** Acelerar pruebas manuales e integración frontend-backend con datos mínimos pero realistas del flujo clínico (paciente -> especialista -> horario -> cita).
+**Impacto:** Menor fricción de arranque en entornos nuevos; seeding idempotente para demos y QA sin depender de carga manual.
+
+### Registro 18
+
+**Fecha:** 2026-04-29
+**Decisión:** Implementar un mini plan frontend por fases: (F1) refresh automático de token en Axios, (F2) especialistas+horarios, (F3) citas+agenda+consultas con pantallas operativas base.
+**Motivo:** Reducir fricción de sesión en operaciones largas y cerrar un primer flujo clínico end-to-end en panel sin esperar refinamientos avanzados de UX.
+**Impacto:** Nuevas rutas clínicas en `/dashboard/*`, patrón de UI reutilizable en `dashboard/clinic.module.css`, y base funcional para iteración posterior en validaciones por campo, selectores enriquecidos y permisos por rol.
+
+### Registro 17
+
+**Fecha:** 2026-04-29
+**Decisión:** Implementar primero en frontend el módulo de `pacientes` como vertical completo (ruta dedicada + tabla + filtros + formulario CRUD) antes de extender citas/agenda/consultas.
+**Motivo:** Entregar un flujo clínico usable de extremo a extremo con baja complejidad de reglas, validar contrato API real y consolidar patrón UI reutilizable para módulos restantes.
+**Impacto:** Nueva página `frontend/src/app/dashboard/pacientes/page.tsx`, estilos dedicados `page.module.css`, y entrada de navegación en `Sidebar`; base lista para replicar estructura en especialistas/citas.
+
+### Registro 14
+
+**Fecha:** 2026-04-29
+**Decisión:** Implementar backend clínico con cuatro apps modulares nuevas: `apps.pacientes`, `apps.especialistas`, `apps.citas`, `apps.consultas`.
+**Motivo:** Mantener separación por dominio (datos maestros, disponibilidad, agenda, acto clínico) y evitar acoplar lógica en una sola app monolítica.
+**Impacto:** Nuevos modelos, rutas y migraciones; endpoints clínicos bajo `/api/` para pacientes, especialistas, horarios, citas, agenda y consultas.
+
+### Registro 15
+
+**Fecha:** 2026-04-29
+**Decisión:** En programación de citas, validar disponibilidad por horario de especialista + evitar solapamientos en capa servicio y en BD con `UniqueConstraint` condicional para citas activas (`PROGRAMADA`/`CONFIRMADA`).
+**Motivo:** Reducir riesgo de doble reserva por error funcional o concurrencia.
+**Impacto:** Reglas de negocio centralizadas en `apps.citas.services.validar_disponibilidad`, respuesta consistente a conflictos de agenda y mayor integridad temporal.
+
+### Registro 16
+
+**Fecha:** 2026-04-29
+**Decisión:** Estandarizar documentacion de API con OpenAPI/Swagger usando `drf-spectacular`.
+**Motivo:** Acelerar integracion frontend, pruebas manuales y onboarding tecnico con contrato vivo de endpoints.
+**Impacto:** Nuevas rutas `/api/schema/`, `/api/docs/`, `/api/redoc/`; `DEFAULT_SCHEMA_CLASS` activo en DRF y dependencia agregada en `requirements/base.txt`.
+
+### Registro 10
+
+**Fecha:** 2026-04-29
+**Decisión:** Crear sistema de agentes local en `.agents/agents/` con un agente principal **`orchestrator`** y especialistas por dominio: `backend`, `frontend`, `architecture`, `code-review`, `qa-testing`.
+**Motivo:** Formalizar orquestación por tipo de tarea, reducir ambigüedad operativa y mejorar consistencia técnica en ejecuciones multi-área.
+**Impacto:** Nuevos prompts versionables en repo para cada agente, reglas explícitas de enrutamiento y posibilidad de invocar skills desde `orchestrator` según intención del usuario.
+
+### Registro 11
+
+**Fecha:** 2026-04-29
+**Decisión:** Estandarizar entorno de trabajo en VS Code con configuración versionada en `.vscode/settings.json` y `.vscode/tasks.json`.
+**Motivo:** Reducir fricción operativa, evitar variaciones de flujo entre sesiones y acelerar comandos repetitivos del stack Docker + Django + docs/ai.
+**Impacto:** Tareas listas para `Run Task` (up/build, migrate, seed, git status, apertura de archivos clave de memoria) y defaults de editor/terminal consistentes en Windows.
+
+### Registro 12
+
+**Fecha:** 2026-04-29
+**Decisión:** Adoptar formato **híbrido** en agentes locales (`.agents/agents/*.md`): frontmatter machine-readable + cuerpo detallado operativo.
+**Motivo:** Mantener compatibilidad con orquestadores/runtimes que parsean metadata y, al mismo tiempo, conservar instrucciones extensas para ejecución humana/CLI.
+**Impacto:** Se añadieron campos `name`, `description`, `model`, `tools`, `triggers`, `escalate_to` y `output_schema` en todos los agentes existentes.
+
+### Registro 13
+
+**Fecha:** 2026-04-29
+**Decisión:** Incorporar dos agentes adicionales en `.agents/agents/`: `architect-planner` e `infra`.
+**Motivo:** Cubrir explícitamente dos vacíos de operación: planificación arquitectónica por fases y ejecución/validación de infraestructura por entorno.
+**Impacto:** `orchestrator` dispone de destinos especializados para cambios estructurales y tareas Docker/deploy/env, reduciendo sobrecarga en agentes de implementación.
+
 ### Registro 9
 
 **Fecha:** 2026-04-17

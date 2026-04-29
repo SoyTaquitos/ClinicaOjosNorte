@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, UserCog, ShieldCheck, KeyRound, Activity, LogOut,
-  Eye, X, ShieldAlert,
+  Eye, X, ShieldAlert, UsersRound,
+  UserRoundCog, CalendarClock, CalendarDays, Stethoscope,
+  BarChart3,
 } from 'lucide-react';
 import { useDashboardUser } from '@/contexts/DashboardUserContext';
 import { logoutApi } from '@/lib/api';
@@ -24,6 +26,12 @@ const NAV_ITEMS: {
   { href: '/dashboard/usuarios', icon: UserCog,        label: 'Usuarios'   },
   { href: '/dashboard/roles',    icon: ShieldCheck,    label: 'Roles'      },
   { href: '/dashboard/permisos', icon: KeyRound,       label: 'Permisos'   },
+  { href: '/dashboard/pacientes', icon: UsersRound,    label: 'Pacientes'  },
+  { href: '/dashboard/especialistas', icon: UserRoundCog, label: 'Especialistas' },
+  { href: '/dashboard/citas', icon: CalendarClock,     label: 'Citas' },
+  { href: '/dashboard/agenda-medica', icon: CalendarDays, label: 'Agenda médica' },
+  { href: '/dashboard/consultas', icon: Stethoscope,   label: 'Consultas' },
+  { href: '/dashboard/kpi', icon: BarChart3, label: 'KPI' },
   {
     href: '/dashboard/seguridad-login',
     icon: ShieldAlert,

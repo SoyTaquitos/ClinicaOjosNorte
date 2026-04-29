@@ -32,9 +32,6 @@ cp .env.example .env
 # 3. Construir y levantar los contenedores
 docker compose up -d --build
 
-# 4. Esperar a que el backend termine de migrar (el entrypoint ya ejecuta `migrate`).
-#    En logs: "Starting development server" = listo. No lances `migrate` en paralelo al primer arranque.
-
 # 5. (Solo si cambiaste modelos en tu máquina) generar migraciones y aplicarlas
 docker compose exec backend python manage.py makemigrations
 docker compose exec backend python manage.py migrate
@@ -64,12 +61,12 @@ Oftalmologia-SI1/
 
 ## Módulos del Sistema
 
-| Módulo    | Descripción                                      |
-| --------- | ------------------------------------------------ |
-| Usuarios  | Autenticación JWT, cuentas del personal interno  |
-| Roles     | Roles y asignación de permisos                   |
-| Permisos  | Catálogo de permisos granulares                  |
-| Bitácora  | Auditoría de acciones (solo lectura vía API)    |
+| Módulo   | Descripción                                     |
+| -------- | ----------------------------------------------- |
+| Usuarios | Autenticación JWT, cuentas del personal interno |
+| Roles    | Roles y asignación de permisos                  |
+| Permisos | Catálogo de permisos granulares                 |
+| Bitácora | Auditoría de acciones (solo lectura vía API)    |
 
 ## Comandos Esenciales Backend
 
@@ -98,7 +95,7 @@ docker compose exec backend python manage.py makemigrations
 docker compose exec backend python manage.py migrate
 
 # Ver estado de migraciones
-docker compose exec backend python manage.py showmigrations
+#docker compose exec backend python manage.py showmigrations
 
 # Poblar datos iniciales (admin, roles, permisos IAM)
 docker compose exec backend python manage.py seed
