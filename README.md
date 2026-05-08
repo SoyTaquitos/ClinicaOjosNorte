@@ -136,3 +136,4 @@ En PowerShell puedes cargar `.env` o sustituir `-U` / `-d` a mano.
 ## Licencia
 
 Proyecto académico — Uso educativo. Clínica de Ojos Norte.
+docker compose down -v --rmi all

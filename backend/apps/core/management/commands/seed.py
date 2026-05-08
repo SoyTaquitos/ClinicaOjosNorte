@@ -43,8 +43,10 @@ SEEDERS = {
     'admin':    ('seeders.seed_admin',    'Superusuario Administrador'),
     'roles':    ('seeders.seed_roles',    'Roles del Sistema'),
     'permisos': ('seeders.seed_permisos', 'Permisos Granulares'),
+    'rbac': ('seeders.seed_rbac_asignaciones', 'Asignaciones RBAC (rol_permiso + usuario_rol)'),
     'clinica':  ('seeders.seed_clinica',  'Datos base clínicos (pacientes/especialistas/citas)'),
     'consultas-demo': ('seeders.seed_consultas_demo', 'Consultas demo (marca citas atendidas)'),
+    'dashboard-demo': ('seeders.seed_dashboard_demo', 'Datos demo de volumen para dashboard'),
 }
 
 

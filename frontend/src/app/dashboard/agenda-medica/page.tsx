@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useDashboardUser } from '@/contexts/DashboardUserContext';
+import { canViewClinicalModule } from '@/lib/authorization';
 import styles from '../clinic.module.css';
 
 interface CitaRow { id_cita: number; id_paciente: number; id_especialista: number; fecha_hora_inicio: string; fecha_hora_fin: string; estado: string; motivo: string; }
@@ -15,11 +17,19 @@ function apiErr(e: unknown): string {
 }
 
 export default function AgendaMedicaPage() {
+  const { me, permissionCodes } = useDashboardUser();
   const [rows, setRows] = useState<CitaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const canViewAgenda = canViewClinicalModule(me, 'agenda', permissionCodes);
 
   const load = useCallback(async () => {
+    if (!canViewAgenda) {
+      setRows([]);
+      setErr('No tienes permiso para ver la agenda médica.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setErr(null);
     try {
@@ -28,7 +38,7 @@ export default function AgendaMedicaPage() {
     } catch (error) {
       setErr(apiErr(error));
     } finally { setLoading(false); }
-  }, []);
+  }, [canViewAgenda]);
 
   useEffect(() => { load(); }, [load]);
 

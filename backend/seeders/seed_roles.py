@@ -23,6 +23,18 @@ ROLES_BASE = [
         'nombre': 'Usuario estándar',
         'descripcion': 'Acceso mínimo al panel autenticado.',
     },
+    {
+        'nombre': 'Recepción Clínica',
+        'descripcion': 'Operación clínica administrativa: pacientes, citas y agenda.',
+    },
+    {
+        'nombre': 'Médico Clínico',
+        'descripcion': 'Atención médica: consulta de agenda/citas y registro de consultas clínicas.',
+    },
+    {
+        'nombre': 'Especialista Clínico',
+        'descripcion': 'Atención especializada: agenda/citas y registro de consultas clínicas.',
+    },
 ]
 
 

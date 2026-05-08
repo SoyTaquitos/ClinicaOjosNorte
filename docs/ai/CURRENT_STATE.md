@@ -24,11 +24,13 @@
   - `agenda`: `GET /api/agenda-medica` (solo lectura por rol médico/admin).
   - `consultas`: CRUD `GET/POST /api/consultas-medicas`.
 - **Bitácora:** `GET /api/bitacora/` (lectura; permisos según rol); escritura desde el backend en operaciones que registren eventos.
-- **Seed unificado:** `python manage.py seed` en `apps/core/management/commands/seed.py` — ejecuta `seeders.seed_admin`, `seeders.seed_roles`, `seeders.seed_permisos`, `seeders.seed_clinica`, `seeders.seed_consultas_demo`. Opción `--only admin|roles|permisos|clinica|consultas-demo`.
+- **Seed unificado:** `python manage.py seed` en `apps/core/management/commands/seed.py` — ejecuta `seeders.seed_admin`, `seeders.seed_roles`, `seeders.seed_permisos`, `seeders.seed_rbac_asignaciones`, `seeders.seed_clinica`, `seeders.seed_consultas_demo`, `seeders.seed_dashboard_demo`. Opción `--only admin|roles|permisos|rbac|clinica|consultas-demo|dashboard-demo`.
 - **Seeder clínico (`--only clinica`):** crea datos base idempotentes para demo (usuarios clínicos, especialistas, pacientes, horarios y cita futura).
 - **Seeder consultas demo (`--only consultas-demo`):** crea consultas médicas idempotentes a partir de citas `PROGRAMADA/CONFIRMADA` y marca esas citas como `ATENDIDA`.
 - **Robustez seed consultas demo:** si ya no hay citas `PROGRAMADA/CONFIRMADA`, el seeder genera una cita futura mínima con datos clínicos existentes y luego crea la consulta demo (evita fallar el `seed` completo).
 - **Recuperación de contraseña:** `POST /api/auth/reset-password/` (email) envía correo con código numérico; `POST /api/auth/reset-password/verify-code/` (`email`, `codigo`); `POST /api/auth/reset-password/confirm/` (`email`, `codigo`, `password_nuevo`, `password_nuevo2`). TTL y longitud: `PASSWORD_RESET_CODE_TTL_SECONDS` (por defecto **180 s**, ~3 min), `PASSWORD_RESET_CODE_LENGTH` en `settings`/`.env`. Tras **verify-code** válido, el backend **renueva `expira_en`** del mismo token para que confirmar no falle por tiempo consumido entre pasos. Correo vía `EMAIL_HOST` (p. ej. MailHog `mailhog:1025` en Docker).
+- **Política de contraseñas reforzada (backend):** además de longitud mínima, la contraseña debe ser estrictamente alfanumérica (`A-Z`, `a-z`, `0-9`), incluir al menos una mayúscula, una minúscula y un número; no se permiten símbolos (`#@%^&...`) ni espacios.
+- **Suite de pruebas inicial (backend):** se agregaron pruebas automáticas para política de contraseña, creación de usuario con validación de password y endpoint `/api/auth/permissions` (roles+permisos efectivos).
 
 ## Frontend (Next.js)
 - **Proxy API:** `next.config.js` reescribe `/api/:path*` → base interna (`INTERNAL_API_URL` o `NEXT_PUBLIC_API_URL` o `http://localhost:8000/api`) para evitar CORS en desarrollo y en Docker (servidor Next → `http://backend:8000/api`).
@@ -36,22 +38,59 @@
 - **Dashboard:** `layout.tsx` redirige a `/login` si no hay access token en cliente.
 - **Rutas panel:** `/dashboard` (panel), `/dashboard/usuarios`, `/dashboard/roles`, `/dashboard/permisos`, `/dashboard/seguridad-login` (solo menú si `tipo_usuario === 'ADMIN'`), `/dashboard/contrasena` (cambio de contraseña con sesión; enlace en menú usuario del navbar), `/dashboard/bitacora`, `/dashboard/pacientes`, `/dashboard/especialistas`, `/dashboard/citas`, `/dashboard/agenda-medica`, `/dashboard/consultas`.
 - **Dashboard KPI (frontend):** nueva ruta `/dashboard/kpi` totalmente responsiva (desktop/tablet/mobile) con tarjetas estratégicas, tabla de estados mensuales, operativo diario por especialista y alertas.
+- **Dashboard clínico (frontend):** el módulo analítico deja de llamarse KPI en UI y en rutas activas. Se expone como `Dashboard` en `/dashboard` (principal) y el panel administrativo rápido se mueve a `/dashboard/inicio`.
 - **Módulo Pacientes (frontend):** ruta `/dashboard/pacientes` conectada a `/api/pacientes` con listado paginado, búsqueda, filtros (`sexo`, `activo`), alta, edición y eliminación; feedback visual y diseño alineado a tokens de paleta violeta.
-- **Módulo Especialistas + Horarios (frontend):** ruta `/dashboard/especialistas` conectada a `/api/especialistas` y `/api/horarios-especialista` con alta y eliminación base.
-- **Módulo Citas (frontend):** ruta `/dashboard/citas` conectada a `/api/citas` con programación y acciones `cancelar`/`reprogramar`.
+- **UX delete paciente/especialista reforzada (frontend):** cuando backend responde `409` por historial clínico protegido, UI ofrece desactivación inmediata y evita flujo roto de eliminación.
+- **Módulo Especialistas + Horarios (frontend):** ruta `/dashboard/especialistas` conectada a `/api/especialistas` y `/api/horarios-especialista` con alta y eliminación base; política UI de escritura activa para `ADMIN`/`ADMINISTRATIVO`.
+- **Desactivación directa en tablas:** pacientes y especialistas ahora incluyen acción `Desactivar` (PATCH `activo=false`) para continuidad operativa sin borrar historial.
+- **Borrado seguro de especialistas (backend):** si especialista tiene historial dependiente (citas/consultas), `DELETE /api/especialistas/{id}` responde `409` con mensaje de negocio (no 500) y recomienda desactivar en lugar de eliminar.
+- **Módulo Citas (frontend):** ruta `/dashboard/citas` conectada a `/api/citas` con programación y acciones `cancelar`/`reprogramar` mediante modales en UI (sin `window.prompt`), con protección de doble envío, validación de fecha/hora, mínimo de caracteres en motivo y mejoras de accesibilidad (ESC, foco inicial, foco contenido en modal, `role="dialog"` + `aria-modal`, mensajes inline por campo). Política actual en UI: escritura habilitada para `ADMIN` y `ADMINISTRATIVO`; `MEDICO`/`ESPECIALISTA` operan en modo lectura en este módulo.
 - **Módulo Agenda médica (frontend):** ruta `/dashboard/agenda-medica` en modo lectura contra `/api/agenda-medica`.
-- **Módulo Consultas médicas (frontend):** ruta `/dashboard/consultas` conectada a `/api/consultas-medicas` para registrar consulta y listar historial.
+- **Módulo Consultas médicas (frontend):** ruta `/dashboard/consultas` conectada a `/api/consultas-medicas` para registrar consulta y listar historial; política UI de escritura activa para `ADMIN`/`MEDICO`/`ESPECIALISTA`.
+- **Autorización frontend reusable:** nuevo helper `frontend/src/lib/authorization.ts` con `canWriteModule(me, module)` para centralizar políticas de acciones por módulo clínico.
+- **Autorización frontend efectiva (RBAC):** `DashboardUserContext` resuelve `permissionCodes` desde `GET /api/auth/permissions` como fuente única; `authorization.ts` evalúa primero permisos efectivos y mantiene fallback por `tipo_usuario` solo en helper para compatibilidad controlada.
+- **Endpoint backend de permisos efectivos:** nuevo `GET /api/auth/permissions` devuelve códigos efectivos de permiso y roles de la sesión, para reducir múltiples llamadas desde frontend y estabilizar evaluación RBAC en UI.
+- **Seeder RBAC de asignaciones:** nuevo `backend/seeders/seed_rbac_asignaciones.py` (idempotente) para poblar `rol_permiso` y `usuario_rol` en entorno dev.
+- **Validación endpoint permisos (Docker):** tras `seed --only rbac`, `GET /api/auth/permissions/` devuelve datos efectivos:
+  - `admin` -> rol `Administrador del Sistema`, 13 permisos.
+  - `dr.carlos` -> rol `Auditor`, 4 permisos (`bitacora.ver`, `users.ver`, `roles.listar`, `permisos.listar`).
+- **Permisos clínicos finos:** `seed_permisos` ahora incluye códigos explícitos para `pacientes.*`, `especialistas.*`, `citas.*`, `consultas.*`, además de `agenda.ver` y `kpi.ver`.
+- **Autorización frontend explícita:** `frontend/src/lib/authorization.ts` usa mapa explícito de códigos por módulo/acción (sin heurísticas por alias).
+- **Roles clínicos dedicados (seed):** se agregaron `Recepción Clínica`, `Médico Clínico` y `Especialista Clínico` para separar operaciones asistenciales de roles IAM.
+- **Sincronización RBAC idempotente:** `seed_rbac_asignaciones` ahora sincroniza (agrega y limpia sobrantes) tanto `rol_permiso` como `usuario_rol` para usuarios seed, evitando mezcla accidental IAM/Clínico.
+- **Política clínica refinada (v2):**
+  - `Recepción Clínica`: puede crear/reprogramar citas, pero no cancelar.
+  - `Médico Clínico` y `Especialista Clínico`: no incluyen `kpi.ver` por defecto.
+  - `Citas` en frontend ya controla acciones por permiso específico (`citas.crear`, `citas.reprogramar`, `citas.cancelar`).
+- **Visibilidad de navegación por rol (frontend):** `Sidebar` ahora filtra rutas con `canViewRoute(me, href)` desde `frontend/src/lib/authorization.ts`, ocultando entradas no autorizadas (IAM/admin y módulos clínicos para perfiles no clínicos).
+- **Guardas de lectura directa (URL):** `agenda-medica`, `pacientes`, `especialistas`, `citas`, `consultas` y `kpi` validan acceso con `canViewClinicalModule` antes de consultar API.
 - **Endpoints KPI (backend):**
-  - `GET /api/kpi/summary` (headline mensual + distribución de estados + datos tácticos).
-  - `GET /api/kpi/operativo` (métricas de hoy + carga por especialista + alertas operativas).
-  - `GET /api/kpi/citas-drilldown` (detalle de citas por estado, filtrable por rango de fechas).
+  - `GET /api/dashboard/summary` (headline mensual + distribución de estados + datos tácticos).
+  - `GET /api/dashboard/operativo` (métricas de hoy + carga por especialista + alertas operativas).
+  - `GET /api/dashboard/citas-drilldown` (detalle de citas por estado, filtrable por rango de fechas).
+  - `GET /api/dashboard/citas-drilldown/export` (export CSV).
+  - Implementado en nueva app modular `apps.dashboard`.
+  - Legacy removido: ya no existen rutas `/api/kpi/*` ni permiso `kpi.ver`.
 - **KPI filtros y cache:** `summary` y `operativo` aceptan `date_from` y `date_to` (`YYYY-MM-DD`) y usan snapshot cacheado (TTL 5 minutos) para reducir carga de consultas repetidas.
 - **KPI drilldown avanzado:** `GET /api/kpi/citas-drilldown` ahora soporta paginación (`page`, `page_size`) y estado; nuevo `GET /api/kpi/citas-drilldown/export` para descarga CSV del detalle filtrado.
 - **KPI UX filtros rápidos:** frontend `/dashboard/kpi` incluye presets de período (`Hoy`, `7d`, `30d`, `Mes`) + filtros personalizados por fecha.
+- **Hardening dashboard drilldown (backend):** `GET /api/dashboard/citas-drilldown` valida `page` y `page_size` como enteros positivos; ante valor inválido responde `400` con mensaje funcional.
+- **Cobertura dashboard (backend):** nuevas pruebas en `apps/dashboard/tests/test_dashboard_endpoints.py` para rango inválido en `summary`, paginación inválida en `drilldown` y contrato CSV en `export`.
+- **Seeder dashboard analítico:** `python manage.py seed --only dashboard-demo` genera citas históricas/futuras con estados mixtos para alimentar KPIs, operativo diario y drilldown exportable.
 - **Login:** respuesta **429** por bloqueo temporal; UI muestra cuenta atrás aproximada (`retry_after_seconds`).
 - **IAM (listados):** páginas consumen API paginada: `GET /api/users/`, `GET /api/roles/`, `GET /api/permisos/`; manejo de 403 con mensaje al usuario.
 - **Bitácora:** datos reales vía `GET /api/bitacora/` con filtros, orden, búsqueda y paginación; KPIs y horas en **Bolivia** (`src/lib/timezone.ts`, `America/La_Paz`, locale `es-BO`).
 - **Landing** pública (`/`), **login** y **`/forgot-password`** (flujo en 3 pasos: correo → código → nueva contraseña) con UI alineada al login.
+- **Mensajería UX de contraseña:** `dashboard/contrasena` y `forgot-password` muestran regla explícita: mínimo 8, una mayúscula, una minúscula, un número y solo letras/números.
+- **Lint frontend no interactivo:** agregado `frontend/.eslintrc.json` (`next/core-web-vitals`) para ejecutar `npm run lint` sin wizard.
+- **Lint frontend limpio:** corregidos warnings de dependencias `useEffect` en módulos `citas` y `kpi`; `npm run lint` queda sin warnings/errores.
+- **Navegación dashboard simplificada:** se elimina entrada duplicada `Dashboard clínico` del `Sidebar`; se mantiene `Dashboard` como acceso principal y `Inicio` como panel rápido.
+- **Ruta canónica dashboard:** `/dashboard` queda como única URL funcional del módulo analítico; `/dashboard/dashboard` se conserva solo como alias legacy con redirección server-side a `/dashboard`.
+- **Pruebas E2E iniciales (frontend):** se integra Playwright con `npm run test:e2e`; primer caso valida que `/dashboard/dashboard` no permanezca como URL final y respete el flujo de redirección canónica.
+- **Guard de sesión validado por E2E:** suite Playwright ahora cubre `/dashboard` sin token (redirige a `/login`) y `/dashboard` con token presente en localStorage (permanece en dashboard).
+- **RBAC Sidebar validado por E2E:** Playwright verifica visibilidad de navegación por rol en `Menú principal` (ADMIN ve IAM; MEDICO no ve IAM y mantiene módulos clínicos permitidos), con mocks de endpoints de sesión/permisos.
+- **Suite E2E organizada por responsabilidad:** pruebas separadas en `auth-guard.spec.ts` (redirect + guard sesión) y `rbac-sidebar.spec.ts` (visibilidad de navegación por rol).
+- **Docker compose (frontend env):** se evita interpolación redundante en `docker-compose.yml`; variables de app se leen desde `.env` vía `env_file` y desaparece warning por variable no seteada en shell.
 
 ## Esquema de base de datos (referencia)
 El archivo **`BaseDeDatos.sql`** (DBML para dbdiagram.io) debe mantenerse alineado con SI1:
@@ -76,7 +115,7 @@ El archivo **`BaseDeDatos.sql`** (DBML para dbdiagram.io) debe mantenerse alinea
 
 ## Pendientes inmediatos
 - Formularios IAM en frontend: alta/edición usuarios, asignación roles, edición catálogo permisos (si aplica a la API).
-- CRUD frontend dominio clínico: pacientes, especialistas/horarios, citas, agenda, consultas (base implementada); falta endurecer UX/validaciones de escritura y nombres enriquecidos en tablas.
+- CRUD frontend dominio clínico: pacientes, especialistas/horarios, citas, agenda, consultas (base implementada); Citas ya migró a modales para cancelar/reprogramar y muestra nombres enriquecidos en tabla. Permisos por rol en UI aplicados en Pacientes, Especialistas/Horarios, Citas y Consultas mediante helper compartido.
 - Endurecer almacenamiento de sesión (p. ej. cookies **http-only**) si se exige para producción.
 - Módulo reportes (fuera de alcance corto según decisión previa).
 
@@ -87,6 +126,7 @@ El archivo **`BaseDeDatos.sql`** (DBML para dbdiagram.io) debe mantenerse alinea
 - `orchestrator` contempla invocación de skills (`caveman`, `deploy-to-vercel`, `find-skills` cuando disponible) según tipo de solicitud.
 - Registro índice: `.agents/agents/README.md`.
 - Formato adoptado: **híbrido** (frontmatter machine-readable + cuerpo detallado de operación) para compatibilidad con runners de agentes y legibilidad humana.
+- **Gobernanza de diseño para agentes:** se agrega `docs/ai/DESIGN.md` como contrato de diseño UI/UX por tipo de sistema, junto a `docs/ai/SKILLS_REGISTRY.md` y `docs/ai/PROMPTS_LIBRARY.md` para habilitar un subagente especializado `design-orchestrator`.
 
 ## Setup VS Code (`.vscode/`)
 - Se agregó `.vscode/settings.json` para flujo consistente en equipo (PowerShell, format on save, exclusiones de búsqueda/archivos, pestañas persistentes).
@@ -94,4 +134,4 @@ El archivo **`BaseDeDatos.sql`** (DBML para dbdiagram.io) debe mantenerse alinea
 - Objetivo: reducir pasos manuales y estandarizar ejecución del flujo agente-first.
 
 ---
-*(Actualizado: 2026-04-29)*
+*(Actualizado: 2026-05-07)*

@@ -8,10 +8,10 @@ import {
   LayoutDashboard, UserCog, ShieldCheck, KeyRound, Activity, LogOut,
   Eye, X, ShieldAlert, UsersRound,
   UserRoundCog, CalendarClock, CalendarDays, Stethoscope,
-  BarChart3,
 } from 'lucide-react';
 import { useDashboardUser } from '@/contexts/DashboardUserContext';
 import { logoutApi } from '@/lib/api';
+import { canViewRoute } from '@/lib/authorization';
 import { initialsFromMe, labelTipoUsuario } from '@/lib/meProfile';
 import { getPublicAppName } from '@/lib/siteConfig';
 import styles from './Sidebar.module.css';
@@ -20,9 +20,9 @@ const NAV_ITEMS: {
   href: string;
   icon: LucideIcon;
   label: string;
-  adminOnly?: boolean;
 }[] = [
-  { href: '/dashboard',           icon: LayoutDashboard, label: 'Panel'      },
+  { href: '/dashboard',           icon: LayoutDashboard, label: 'Dashboard'  },
+  { href: '/dashboard/inicio',    icon: LayoutDashboard, label: 'Inicio'     },
   { href: '/dashboard/usuarios', icon: UserCog,        label: 'Usuarios'   },
   { href: '/dashboard/roles',    icon: ShieldCheck,    label: 'Roles'      },
   { href: '/dashboard/permisos', icon: KeyRound,       label: 'Permisos'   },
@@ -31,12 +31,10 @@ const NAV_ITEMS: {
   { href: '/dashboard/citas', icon: CalendarClock,     label: 'Citas' },
   { href: '/dashboard/agenda-medica', icon: CalendarDays, label: 'Agenda médica' },
   { href: '/dashboard/consultas', icon: Stethoscope,   label: 'Consultas' },
-  { href: '/dashboard/kpi', icon: BarChart3, label: 'KPI' },
   {
     href: '/dashboard/seguridad-login',
     icon: ShieldAlert,
     label: 'Login seguridad',
-    adminOnly: true,
   },
   { href: '/dashboard/bitacora',  icon: Activity,       label: 'Bitácora'   },
 ];
@@ -49,7 +47,7 @@ interface SidebarProps {
 export default function Sidebar({ collapsed, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { me, loading } = useDashboardUser();
+  const { me, permissionCodes, loading } = useDashboardUser();
   const appName = getPublicAppName();
 
   const displayName =
@@ -98,7 +96,7 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
 
         <nav className={styles.nav} aria-label="Menú principal">
           <ul>
-            {NAV_ITEMS.filter((item) => !item.adminOnly || me?.tipo_usuario === 'ADMIN').map(
+            {NAV_ITEMS.filter((item) => canViewRoute(me, item.href, permissionCodes)).map(
               ({ href, icon: Icon, label }) => (
               <li key={href}>
                 <Link

@@ -51,13 +51,7 @@ services:
     env_file:
       - .env
     environment:
-      # Obligatorias en `.env` (ver `.env.example`). Sin defaults en compose: nada hardcodeado aquí.
-      INTERNAL_API_URL: ${INTERNAL_API_URL}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME}
-      NEXT_PUBLIC_APP_TAGLINE: ${NEXT_PUBLIC_APP_TAGLINE:-}
-      NEXT_PUBLIC_APP_DESCRIPTION: ${NEXT_PUBLIC_APP_DESCRIPTION:-}
-      NEXT_PUBLIC_META_KEYWORDS: ${NEXT_PUBLIC_META_KEYWORDS:-}
+      # Variables de app se cargan desde env_file (.env).
       NEXT_TELEMETRY_DISABLED: "1"
     volumes:
       - ./frontend:/app

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '@/lib/api';
+import { useDashboardUser } from '@/contexts/DashboardUserContext';
+import { canViewClinicalModule, canWriteModule } from '@/lib/authorization';
 import styles from './page.module.css';
 
 interface PacienteRow {
@@ -76,6 +78,7 @@ function fieldErrorsFrom(error: unknown): Record<string, string> {
 }
 
 export default function PacientesPage() {
+  const { me, permissionCodes } = useDashboardUser();
   const [rows, setRows] = useState<PacienteRow[]>([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -104,7 +107,16 @@ export default function PacientesPage() {
     return params.toString();
   }, [page, q, filterSexo, filterActivo]);
 
+  const canViewPacientes = canViewClinicalModule(me, 'pacientes', permissionCodes);
+
   const load = useCallback(async () => {
+    if (!canViewPacientes) {
+      setRows([]);
+      setCount(0);
+      setError('No tienes permiso para ver el módulo de pacientes.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -120,7 +132,7 @@ export default function PacientesPage() {
     } finally {
       setLoading(false);
     }
-  }, [query]);
+  }, [canViewPacientes, query]);
 
   useEffect(() => {
     load();
@@ -129,6 +141,7 @@ export default function PacientesPage() {
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
   const activos = rows.filter((r) => r.activo).length;
   const inactivos = rows.length - activos;
+  const canManagePacientes = canWriteModule(me, 'pacientes', permissionCodes);
 
   function resetMessages() {
     setError(null);
@@ -137,6 +150,10 @@ export default function PacientesPage() {
   }
 
   function openCreate() {
+    if (!canManagePacientes) {
+      setError('No tienes permiso para crear pacientes.');
+      return;
+    }
     resetMessages();
     setFieldErr({});
     setForm(emptyForm);
@@ -145,6 +162,10 @@ export default function PacientesPage() {
   }
 
   function openEdit(row: PacienteRow) {
+    if (!canManagePacientes) {
+      setError('No tienes permiso para editar pacientes.');
+      return;
+    }
     resetMessages();
     setFieldErr({});
     setForm({
@@ -169,6 +190,10 @@ export default function PacientesPage() {
   }
 
   async function submit() {
+    if (!canManagePacientes) {
+      setFormErr('No tienes permiso para guardar cambios en pacientes.');
+      return;
+    }
     setSaving(true);
     setFormErr(null);
     setFieldErr({});
@@ -204,12 +229,46 @@ export default function PacientesPage() {
   }
 
   async function remove(row: PacienteRow) {
+    if (!canManagePacientes) {
+      setError('No tienes permiso para eliminar pacientes.');
+      return;
+    }
     if (!window.confirm(`¿Eliminar paciente ${row.nombres} ${row.apellidos}?`)) return;
     setError(null);
     setOk(null);
     try {
       await api.delete(`/api/pacientes/${row.id_paciente}`);
       setOk('Paciente eliminado correctamente.');
+      await load();
+    } catch (e) {
+      const status = (e as { response?: { status?: number } }).response?.status;
+      if (status === 409) {
+        const shouldDeactivate = window.confirm(
+          'No se puede eliminar porque tiene historial clínico asociado. ¿Quieres desactivarlo ahora?'
+        );
+        if (shouldDeactivate) {
+          await deactivate(row);
+          return;
+        }
+      }
+      setError(parseApiError(e));
+    }
+  }
+
+  async function deactivate(row: PacienteRow) {
+    if (!canManagePacientes) {
+      setError('No tienes permiso para desactivar pacientes.');
+      return;
+    }
+    if (!row.activo) {
+      setOk('El paciente ya está inactivo.');
+      return;
+    }
+    setError(null);
+    setOk(null);
+    try {
+      await api.patch(`/api/pacientes/${row.id_paciente}`, { activo: false });
+      setOk('Paciente desactivado correctamente.');
       await load();
     } catch (e) {
       setError(parseApiError(e));
@@ -244,6 +303,7 @@ export default function PacientesPage() {
           </div>
         </div>
       </div>
+      {!canManagePacientes && <div className={styles.error}>Tu rol es de solo lectura en Pacientes. Puedes consultar y filtrar, pero no crear, editar ni eliminar.</div>}
 
       <div className={styles.toolbar}>
         <div className={styles.field}>
@@ -296,7 +356,7 @@ export default function PacientesPage() {
           <button type="button" className={styles.btn} onClick={() => load()} disabled={loading}>
             Recargar
           </button>
-          <button type="button" className={styles.btnPrimary} onClick={openCreate}>
+          <button type="button" className={styles.btnPrimary} onClick={openCreate} disabled={!canManagePacientes}>
             Nuevo paciente
           </button>
         </div>
@@ -351,10 +411,19 @@ export default function PacientesPage() {
                 </td>
                 <td>
                   <div className={styles.tableActions}>
-                    <button type="button" className={styles.btnGhost} onClick={() => openEdit(row)}>
+                    <button type="button" className={styles.btnGhost} onClick={() => openEdit(row)} disabled={!canManagePacientes}>
                       Editar
                     </button>
-                    <button type="button" className={styles.btnDanger} onClick={() => remove(row)}>
+                    <button
+                      type="button"
+                      className={styles.btn}
+                      onClick={() => deactivate(row)}
+                      disabled={!canManagePacientes || !row.activo}
+                      title={row.activo ? 'Desactivar paciente' : 'Paciente ya inactivo'}
+                    >
+                      Desactivar
+                    </button>
+                    <button type="button" className={styles.btnDanger} onClick={() => remove(row)} disabled={!canManagePacientes}>
                       Eliminar
                     </button>
                   </div>

@@ -3,9 +3,65 @@
 *Sincronización de documentación con el código en repo.*
 
 ## Fecha
-2026-04-29
+2026-05-07
 
 ## Resumen
+1. **Citas UX refinado (Fase 1):** `/dashboard/citas` reemplaza `window.prompt` por modales de cancelación y reprogramación con campos explícitos (fecha, hora, motivo).
+2. **Hardening post-review:** se añadió protección contra doble envío en confirmar cancelar/reprogramar, validación de fecha/hora inválida y mínimo de caracteres en motivo.
+3. **Accesibilidad + feedback:** modales con `ESC`, foco inicial, trampa de foco, atributos ARIA y mensajes inline por campo.
+4. **Control por rol transversal en módulos clínicos (UI):** política reusable con `canWriteModule` aplicada en `Pacientes`, `Especialistas/Horarios`, `Citas` y `Consultas`.
+5. **Matriz actual de escritura:**
+   - `pacientes`, `especialistas`, `citas` => `ADMIN`, `ADMINISTRATIVO`
+   - `consultas` => `ADMIN`, `MEDICO`, `ESPECIALISTA`
+6. **Visibilidad de rutas en Sidebar por rol:** integración de `canViewRoute` para ocultar navegación no permitida según perfil.
+7. **Guardas de lectura por URL directa:** validación de vista aplicada en `agenda-medica`, `pacientes`, `especialistas`, `citas`, `consultas` y `kpi`.
+8. **Tabla de citas enriquecida:** visualización de paciente y especialista por nombre (fallback a ID si no está en caché local).
+9. **Permisos efectivos en frontend (fase 1):** `DashboardUserContext` carga `permissionCodes` y `authorization.ts` usa esos códigos para evaluar vista/escritura con fallback por rol cuando no hay datos.
+10. **Permisos efectivos en backend (fase 2):** nuevo endpoint `GET /api/auth/permissions` para devolver permisos/roles de la sesión en una sola llamada.
+11. **Validación técnica Docker:** `docker compose up -d --build`, `makemigrations`, `migrate`, `seed` y `manage.py check` ejecutados OK.
+12. **Cierre de hallazgo RBAC:** agregado seeder `rbac` para `rol_permiso` + `usuario_rol` y revalidado endpoint `/api/auth/permissions/` con respuesta no vacía por usuario.
+13. **Refactor frontend RBAC:** `DashboardUserContext` elimina fallback legacy de múltiples endpoints y consume únicamente `/api/auth/permissions` para cargar permisos efectivos.
+14. **Permisos clínicos finos:** catálogo backend ampliado con permisos explícitos por módulo clínico y asignaciones RBAC actualizadas por rol.
+15. **Enforcement explícito en frontend:** autorización de vista/escritura ahora se basa en códigos concretos (`modulo.accion`) en lugar de matching heurístico.
+16. **Validación técnica:** `seed --only permisos`, `seed --only rbac`, verificación de `/api/auth/permissions` y `npm run build` OK.
+17. **Política clínica refinada:** se introdujeron roles clínicos dedicados (`Recepción Clínica`, `Médico Clínico`, `Especialista Clínico`) y se reasignaron usuarios seed clínicos para no mezclar privilegios IAM.
+18. **Verificación de separación de privilegios:** `dr.carlos` (Médico Clínico) no posee `users.crear`; `dra.andrea` (Especialista Clínico) sí mantiene `consultas.crear`.
+19. **Ajuste fino por acción en Citas:** recepción ya no recibe `citas.cancelar`; frontend diferencia permisos de crear/reprogramar/cancelar con controles independientes.
+20. **Ajuste de visibilidad estratégica:** roles clínicos médicos/especialistas quedan sin `kpi.ver` por defecto.
+21. **Nuevo contrato de diseño para agentes:** se creó `docs/ai/DESIGN.md` para estandarizar diseño por tipo de sistema y salidas esperadas de subagentes UI/UX.
+22. **Base de continuidad de skills/prompts UI:** se agregaron `docs/ai/SKILLS_REGISTRY.md` y `docs/ai/PROMPTS_LIBRARY.md` con definición inicial del subagente `design-orchestrator`.
+23. **Política de contraseña alfanumérica estricta:** backend ahora exige mayúscula + minúscula + número y bloquea símbolos/espacios en cambio y recuperación de contraseña.
+24. **UX alineada en formularios de contraseña:** se actualizaron textos de ayuda en `/dashboard/contrasena` y `/forgot-password` para reflejar la nueva política.
+25. **Pruebas backend añadidas:** nuevos tests para política de contraseña, creación de usuario con password válido/inválido y endpoint `GET /api/auth/permissions`.
+26. **ESLint frontend estabilizado:** configuración `frontend/.eslintrc.json` evita prompt interactivo en `npm run lint`.
+27. **Fix módulo Especialistas (delete):** `DELETE /api/especialistas/{id}` ahora captura `ProtectedError` y devuelve `409` con error funcional cuando existen citas/consultas asociadas.
+28. **Cobertura de fix:** nuevos tests en `apps/especialistas/tests/test_delete_especialista.py` validan caso sin dependencias (`204`) y con dependencias (`409`).
+29. **UX de recuperación ante `409` en frontend:** en `Pacientes` y `Especialistas`, si falla delete por historial protegido, se ofrece desactivar registro en el mismo flujo.
+30. **Nueva acción operacional:** botones `Desactivar` agregados en tablas de pacientes/especialistas (`PATCH activo=false`) para evitar bloqueos de operación por integridad referencial.
+31. **Calidad frontend estabilizada:** se corrigieron warnings `react-hooks/exhaustive-deps` en `Citas` y `KPI`; lint queda limpio.
+32. **Rename funcional KPI -> Dashboard:** UI ahora usa nombre `Dashboard` (sin palabra KPI), con ruta principal `/dashboard` para analítica y `/dashboard/inicio` para panel rápido administrativo.
+33. **Backend modular dashboard:** nueva app `apps.dashboard` con endpoints `/api/dashboard/*` (`summary`, `operativo`, `citas-drilldown`, `export`).
+34. **RBAC actualizado:** nuevo permiso `dashboard.ver` agregado en seeders y asignaciones RBAC actualizadas; frontend acepta compatibilidad temporal con `kpi.ver`.
+35. **Retiro de legado completado:** se eliminó compatibilidad temporal `kpi.ver`, ruta frontend `/dashboard/kpi`, estilos/archivos KPI y módulo backend legacy `apps.core.kpi_views`.
+36. **Hardening API dashboard:** `citas-drilldown` ahora valida `page`/`page_size` como enteros positivos y retorna `400` en parámetros inválidos.
+37. **Pruebas dashboard añadidas:** `apps/dashboard/tests/test_dashboard_endpoints.py` cubre rango inválido en `summary`, paginación inválida en `drilldown` y export CSV en `citas-drilldown/export`.
+38. **Compose frontend saneado:** `docker-compose.yml` deja de interpolar variables de app en `environment` y delega carga a `env_file`, mitigando warning de `INTERNAL_API_URL` no seteada en shell.
+39. **Sidebar simplificado:** removida opción duplicada `Dashboard clínico`; navegación principal queda en `Dashboard` + `Inicio`.
+40. **Validación técnica reciente:** `manage.py test apps.dashboard.tests`, `npm run lint` y `npm run build` ejecutados OK.
+41. **URL canónica dashboard aplicada:** `/dashboard/dashboard` ahora redirige a `/dashboard`; la vista analítica se mantiene en componente dedicado reutilizable.
+42. **Validación frontend tras redirección:** `npm run lint` y `npm run build` nuevamente en verde.
+43. **Playwright incorporado para E2E:** se añadió setup mínimo (`@playwright/test`, `playwright.config.ts`, script `test:e2e`) y caso de prueba para ruta legacy dashboard.
+44. **E2E dashboard en verde:** `npm run test:e2e` pasa validando que no se conserva `/dashboard/dashboard` como URL final.
+45. **Guard de sesión cubierto en E2E:** se agregan pruebas para `/dashboard` sin token (redirige a `/login`) y con token presente (se mantiene en `/dashboard`).
+46. **Suite E2E ampliada en verde:** `npm run test:e2e` ejecuta 3 casos y todos pasan.
+47. **RBAC navegación E2E:** se suman 2 casos de Sidebar por rol con mocks de `/api/auth/me` y `/api/auth/permissions` (ADMIN ve `Usuarios/Roles/Permisos`; MEDICO no).
+48. **Suite E2E actual:** `npm run test:e2e` ejecuta 5 casos y todos pasan.
+49. **Refactor de pruebas E2E:** separación en archivos por propósito (`auth-guard.spec.ts` y `rbac-sidebar.spec.ts`) para mejor mantenibilidad.
+50. **Validación tras refactor E2E:** suite completa mantiene 5/5 casos en verde.
+51. **Seeder dashboard agregado:** nuevo `--only dashboard-demo` para poblar volumen analítico de citas con estados mezclados.
+52. **Verificación dashboard post-reset:** `seed --only dashboard-demo` ejecutado OK y endpoints `/api/dashboard/summary`, `/api/dashboard/operativo`, `/api/dashboard/citas-drilldown` y export CSV responden correctamente.
+
+## Resumen previo (sigue válido)
 1. **KPI pro implementado:** drilldown con paginación (`page/page_size`) + export CSV (`/api/kpi/citas-drilldown/export`).
 2. **UX de análisis acelerada:** presets rápidos de período (`Hoy`, `7d`, `30d`, `Mes`) en `/dashboard/kpi`.
 3. **Integración completa frontend-backend:** filtros/presets afectan `summary`, `operativo` y `drilldown` de forma consistente.

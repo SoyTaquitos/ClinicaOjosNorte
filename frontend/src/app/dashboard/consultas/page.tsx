@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useDashboardUser } from '@/contexts/DashboardUserContext';
+import { canViewClinicalModule, canWriteModule } from '@/lib/authorization';
 import styles from '../clinic.module.css';
 
 interface PageRes<T> { count: number; results: T[]; }
@@ -20,6 +22,7 @@ function apiErr(e: unknown): string {
 }
 
 export default function ConsultasPage() {
+  const { me, permissionCodes } = useDashboardUser();
   const [citas, setCitas] = useState<CitaRow[]>([]);
   const [rows, setRows] = useState<ConsultaRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,8 +32,17 @@ export default function ConsultasPage() {
   const [form, setForm] = useState({
     id_cita: '', id_paciente: '', id_especialista: '', motivo_consulta: '', anamnesis: '', hallazgos: '', diagnostico: '', plan_tratamiento: '',
   });
+  const canManageConsultas = canWriteModule(me, 'consultas', permissionCodes);
+  const canViewConsultas = canViewClinicalModule(me, 'consultas', permissionCodes);
 
   const load = useCallback(async () => {
+    if (!canViewConsultas) {
+      setCitas([]);
+      setRows([]);
+      setErr('No tienes permiso para ver el módulo de consultas.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setErr(null);
     try {
@@ -43,7 +55,7 @@ export default function ConsultasPage() {
     } catch (error) {
       setErr(apiErr(error));
     } finally { setLoading(false); }
-  }, []);
+  }, [canViewConsultas]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -56,6 +68,10 @@ export default function ConsultasPage() {
   }
 
   async function createConsulta() {
+    if (!canManageConsultas) {
+      setErr('No tienes permiso para registrar consultas.');
+      return;
+    }
     if (!form.id_cita || !form.id_paciente || !form.id_especialista) return;
     setErr(null);
     setOk(null);
@@ -86,6 +102,7 @@ export default function ConsultasPage() {
       </div>
       {err && <div className={styles.err}>{err}</div>}
       {ok && <div className={styles.ok}>{ok}</div>}
+      {!canManageConsultas && <div className={styles.err}>Tu rol es de solo lectura en Consultas. Puedes revisar historial, pero no registrar nuevas consultas.</div>}
 
       <div className={styles.toolbar}>
         <div className={styles.field}>
@@ -97,7 +114,7 @@ export default function ConsultasPage() {
         </div>
         <div className={styles.field}><label>Paciente ID</label><input value={form.id_paciente} onChange={(e) => setForm((p) => ({ ...p, id_paciente: e.target.value }))} /></div>
         <div className={styles.field}><label>Especialista ID</label><input value={form.id_especialista} onChange={(e) => setForm((p) => ({ ...p, id_especialista: e.target.value }))} /></div>
-        <div className={styles.actions}><button type="button" className={styles.btnPrimary} onClick={createConsulta} disabled={loading}>Registrar consulta</button></div>
+        <div className={styles.actions}><button type="button" className={styles.btnPrimary} onClick={createConsulta} disabled={loading || !canManageConsultas}>Registrar consulta</button></div>
       </div>
 
       <div className={styles.grid2}>
