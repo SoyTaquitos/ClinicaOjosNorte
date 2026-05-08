@@ -10,6 +10,7 @@ from .password_reset import (
     ResetPasswordVerifyCodeView,
     ResetPasswordView,
 )
+from .permissions import MePermissionsView
 from .profile import MeView
 from .security import LoginSeguridadConfigView
 
@@ -19,6 +20,7 @@ __all__ = [
     'LoginView',
     'LogoutView',
     'MeView',
+    'MePermissionsView',
     'ResetPasswordConfirmView',
     'ResetPasswordVerifyCodeView',
     'ResetPasswordView',

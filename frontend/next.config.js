@@ -33,6 +33,16 @@ const nextConfig = {
   images: {
     remotePatterns: imageRemotePatternsFromEnv(),
   },
+
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/dashboard',
+        destination: '/dashboard',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

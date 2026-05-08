@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import api from '@/lib/api';
 import { useDashboardUser } from '@/contexts/DashboardUserContext';
 import type { MeProfile } from '@/lib/meProfile';
@@ -101,6 +102,7 @@ export default function UsuariosPage() {
   const [formErr, setFormErr] = useState<string | null>(null);
   const [fieldErr, setFieldErr] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
 
   const [userRoles, setUserRoles] = useState<UsuarioRolRow[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
@@ -166,6 +168,7 @@ export default function UsuariosPage() {
     setForm(emptyCreate);
     setFormErr(null);
     setFieldErr({});
+    setShowCreatePassword(false);
     setEditId(null);
     setModal('create');
   };
@@ -442,13 +445,30 @@ export default function UsuariosPage() {
             {modal === 'create' && (
               <div className={styles.formRow}>
                 <label htmlFor="u-pass">Contraseña</label>
-                <input
-                  id="u-pass"
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  autoComplete="new-password"
-                />
+                <div className={styles.pwdField}>
+                  <input
+                    id="u-pass"
+                    type={showCreatePassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className={styles.pwdToggle}
+                    onClick={() => setShowCreatePassword((v) => !v)}
+                    aria-label={showCreatePassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    aria-pressed={showCreatePassword}
+                    aria-controls="u-pass"
+                    title={showCreatePassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  >
+                    {showCreatePassword ? (
+                      <EyeOff aria-hidden="true" size={16} strokeWidth={1.8} />
+                    ) : (
+                      <Eye aria-hidden="true" size={16} strokeWidth={1.8} />
+                    )}
+                  </button>
+                </div>
                 {fieldErr.password && <p className={styles.fieldErr}>{fieldErr.password}</p>}
               </div>
             )}

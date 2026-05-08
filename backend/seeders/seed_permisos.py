@@ -4,7 +4,7 @@ Pobla la tabla permisos con los permisos granulares del sistema (IAM).
 Idempotente: usa get_or_create.
 
 Convención: '<modulo>.<accion>'
-Módulos vigentes: users, bitacora, roles, permisos
+Módulos vigentes: users, bitacora, roles, permisos, pacientes, especialistas, citas, consultas, agenda, dashboard
 """
 from apps.permisos.models import Permiso
 
@@ -28,6 +28,34 @@ PERMISOS = [
     {'codigo': 'permisos.listar', 'nombre': 'Listar permisos', 'modulo': 'permisos'},
     {'codigo': 'permisos.crear',  'nombre': 'Crear permiso',   'modulo': 'permisos'},
     {'codigo': 'permisos.editar', 'nombre': 'Editar permiso',  'modulo': 'permisos'},
+
+    # Pacientes
+    {'codigo': 'pacientes.listar',   'nombre': 'Listar pacientes',   'modulo': 'pacientes'},
+    {'codigo': 'pacientes.crear',    'nombre': 'Crear paciente',     'modulo': 'pacientes'},
+    {'codigo': 'pacientes.editar',   'nombre': 'Editar paciente',    'modulo': 'pacientes'},
+    {'codigo': 'pacientes.eliminar', 'nombre': 'Eliminar paciente',  'modulo': 'pacientes'},
+
+    # Especialistas / horarios
+    {'codigo': 'especialistas.listar',   'nombre': 'Listar especialistas',   'modulo': 'especialistas'},
+    {'codigo': 'especialistas.crear',    'nombre': 'Crear especialista',     'modulo': 'especialistas'},
+    {'codigo': 'especialistas.editar',   'nombre': 'Editar especialista',    'modulo': 'especialistas'},
+    {'codigo': 'especialistas.eliminar', 'nombre': 'Eliminar especialista',  'modulo': 'especialistas'},
+
+    # Citas
+    {'codigo': 'citas.listar',       'nombre': 'Listar citas',       'modulo': 'citas'},
+    {'codigo': 'citas.crear',        'nombre': 'Crear cita',         'modulo': 'citas'},
+    {'codigo': 'citas.reprogramar',  'nombre': 'Reprogramar cita',   'modulo': 'citas'},
+    {'codigo': 'citas.cancelar',     'nombre': 'Cancelar cita',      'modulo': 'citas'},
+
+    # Agenda
+    {'codigo': 'agenda.ver',         'nombre': 'Ver agenda médica',  'modulo': 'agenda'},
+
+    # Consultas
+    {'codigo': 'consultas.listar',   'nombre': 'Listar consultas',   'modulo': 'consultas'},
+    {'codigo': 'consultas.crear',    'nombre': 'Registrar consulta', 'modulo': 'consultas'},
+
+    # Dashboard
+    {'codigo': 'dashboard.ver',      'nombre': 'Ver dashboard clínico',  'modulo': 'dashboard'},
 ]
 
 

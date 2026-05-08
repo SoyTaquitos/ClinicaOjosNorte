@@ -10,6 +10,202 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+### Registro 45
+
+**Fecha:** 2026-05-07
+**Decisión:** Robustecer endpoints de drilldown del dashboard validando `page` y `page_size` como enteros positivos y responder `400` en parámetros inválidos.
+**Motivo:** Evitar errores 500 por `ValueError` al recibir query params malformados y mantener contrato API predecible para frontend/consumidores.
+**Impacto:** `apps.dashboard.views` incorpora parseo seguro de enteros; se agregan pruebas backend para rango inválido, paginación inválida y export CSV.
+
+### Registro 46
+
+**Fecha:** 2026-05-07
+**Decisión:** Definir `/dashboard` como URL canónica del módulo analítico y convertir `/dashboard/dashboard` en ruta legacy con redirección server-side.
+**Motivo:** Evitar duplicidad de rutas para la misma vista, simplificar navegación y mejorar coherencia de UX/soporte.
+**Impacto:** la lógica analítica se mueve a componente reutilizable (`DashboardAnalyticsPage`) y `dashboard/dashboard/page.tsx` ahora ejecuta `redirect('/dashboard')`.
+
+### Registro 47
+
+**Fecha:** 2026-05-07
+**Decisión:** Añadir pruebas E2E con Playwright para validar la ruta legacy `/dashboard/dashboard` y su comportamiento de redirección a la URL canónica.
+**Motivo:** Incorporar verificación automatizada de navegación crítica y prevenir regresiones en rutas tras refactor del dashboard.
+**Impacto:** se agrega infraestructura Playwright (`playwright.config.ts`, script `test:e2e`, dependencia `@playwright/test`) y test `dashboard-redirect.spec.ts` con ejecución verde.
+
+### Registro 48
+
+**Fecha:** 2026-05-07
+**Decisión:** Extender suite E2E con pruebas de guard de sesión para `/dashboard` (sin token -> `/login`, con token presente -> permanece en `/dashboard`).
+**Motivo:** Validar explícitamente el comportamiento de acceso protegido del layout del dashboard y prevenir regresiones en control de sesión cliente.
+**Impacto:** `dashboard-redirect.spec.ts` cubre 3 flujos críticos de navegación (legacy redirect + guard sin token + guard con token).
+
+### Registro 49
+
+**Fecha:** 2026-05-07
+**Decisión:** Extender pruebas E2E para autorización visual por rol en Sidebar usando mocks de `/api/auth/me` y `/api/auth/permissions`.
+**Motivo:** Validar reglas RBAC de navegación frontend de forma determinista sin depender del estado de datos del backend en entorno local.
+**Impacto:** se agregan casos E2E para `ADMIN` (ve IAM) y `MEDICO` (oculta IAM), quedando 5 pruebas E2E en verde.
+
+### Registro 50
+
+**Fecha:** 2026-05-07
+**Decisión:** Reorganizar la suite E2E separando casos de autenticación/guard y RBAC de sidebar en archivos distintos.
+**Motivo:** Mejorar legibilidad, mantenibilidad y escalabilidad de pruebas (cada spec con una responsabilidad clara).
+**Impacto:** `dashboard-redirect.spec.ts` se divide en `auth-guard.spec.ts` y `rbac-sidebar.spec.ts`; la suite sigue estable (5/5 passing).
+
+### Registro 51
+
+**Fecha:** 2026-05-07
+**Decisión:** Incorporar seeder dedicado `dashboard-demo` para generar volumen de citas con distribución de estados orientada a métricas de dashboard.
+**Motivo:** En ambientes recién reiniciados el dataset base era insuficiente para validar tendencias (cancelación/atención/drilldown/export) de forma consistente.
+**Impacto:** nuevo `seeders.seed_dashboard_demo` integrado al comando `seed --only dashboard-demo`; permite poblar datos analíticos idempotentes y verificar `/api/dashboard/*` con resultados no triviales.
+
+### Registro 44
+
+**Fecha:** 2026-05-07
+**Decisión:** Eliminar completamente compatibilidad legacy de KPI (`/dashboard/kpi`, `/api/kpi/*`, `kpi.ver`) y consolidar contrato final en `dashboard`.
+**Motivo:** Cerrar deuda de transición y evitar ambigüedad semántica/operativa entre panel y dashboard.
+**Impacto:** frontend y backend quedan con naming único `dashboard`; permisos y rutas legacy removidos de código y datos semilla.
+
+### Registro 43
+
+**Fecha:** 2026-05-07
+**Decisión:** Renombrar módulo analítico de UI/API de `KPI` a `Dashboard` y extraerlo a nueva app backend modular `apps.dashboard`.
+**Motivo:** Reducir ambigüedad conceptual entre “panel” y “dashboard”, y alinear arquitectura por dominio (analítica fuera de `apps.core`).
+**Impacto:** nuevas rutas `/api/dashboard/*`, frontend principal `/dashboard` para analítica, `/dashboard/inicio` para accesos rápidos administrativos, permiso nuevo `dashboard.ver` con compatibilidad temporal `kpi.ver`.
+
+### Registro 42
+
+**Fecha:** 2026-05-07
+**Decisión:** Ajustar dependencias de `useEffect` en frontend (`Citas`, `KPI`) para cumplir `react-hooks/exhaustive-deps` sin deshabilitar reglas.
+**Motivo:** Mantener lint limpio y evitar comportamientos no deterministas por cierres (`closures`) con dependencias implícitas.
+**Impacto:** `closeCancelModal` y `closeReschModal` pasan a `useCallback`; `useEffect` de KPI incluye `canViewKpi` en dependencias; `npm run lint` queda en verde.
+
+### Registro 41
+
+**Fecha:** 2026-05-07
+**Decisión:** Implementar fallback UX de desactivación en frontend para errores `409` al eliminar pacientes/especialistas con historial protegido.
+**Motivo:** Mantener continuidad operativa cuando la integridad referencial impide borrado físico, evitando bloqueos de flujo en recepción/administración.
+**Impacto:** `Pacientes` y `Especialistas` agregan botón `Desactivar` y flujo de confirmación tras `409` para ejecutar `PATCH activo=false` en lugar de delete.
+
+### Registro 40
+
+**Fecha:** 2026-05-07
+**Decisión:** Convertir falla técnica de borrado de especialista con dependencias (`ProtectedError`) en respuesta de negocio controlada `409 Conflict`.
+**Motivo:** Evitar error 500 en UI al eliminar especialistas con citas/consultas históricas y entregar mensaje accionable al usuario.
+**Impacto:** `EspecialistaViewSet.destroy` maneja `ProtectedError`; se agregan tests para flujos `204` (sin dependencias) y `409` (con dependencias).
+
+### Registro 39
+
+**Fecha:** 2026-05-07
+**Decisión:** Incorporar suite mínima de pruebas automáticas backend para validar política de contraseña y endpoint de permisos efectivos, y habilitar lint frontend no interactivo.
+**Motivo:** Hasta ahora no existían pruebas ejecutables (`0 tests`), lo que impedía validar regresiones en seguridad de password y RBAC de sesión.
+**Impacto:** Nuevos tests en `apps/users/tests` y `apps/auth/tests`; `frontend/.eslintrc.json` permite ejecutar `npm run lint` en CI/CLI sin asistente inicial.
+
+### Registro 38
+
+**Fecha:** 2026-05-07
+**Decisión:** Endurecer política de contraseña para exigir formato alfanumérico con complejidad mínima (al menos una mayúscula, una minúscula y un número), prohibiendo símbolos y espacios.
+**Motivo:** Requisito funcional explícito del producto para evitar caracteres especiales y mantener una política uniforme en cambio y recuperación de contraseña.
+**Impacto:** Nuevo validador `AlphanumericComplexityValidator` en backend integrado a `AUTH_PASSWORD_VALIDATORS`; la UI de cambio/recuperación muestra reglas actualizadas para reducir errores de usuario.
+
+### Registro 37
+
+**Fecha:** 2026-05-03
+**Decisión:** Institucionalizar un contrato de diseño para agentes en `docs/ai/DESIGN.md` y formalizar continuidad con `SKILLS_REGISTRY.md` y `PROMPTS_LIBRARY.md` para habilitar un subagente de diseño por tipo de sistema.
+**Motivo:** Reducir variabilidad visual entre sesiones/agentes, mejorar trazabilidad UX y acelerar handoff diseño -> implementación frontend.
+**Impacto:** Se define estructura reusable de tokens, accesibilidad, estados de componentes, perfiles por tipo de sistema y prompt reutilizable para `design-orchestrator`.
+
+### Registro 36
+
+**Fecha:** 2026-04-30
+**Decisión:** Refinar política clínica por acción: recepción sin permiso de cancelación de citas y perfiles clínicos asistenciales sin `kpi.ver` por defecto.
+**Motivo:** Aplicar mínimo privilegio y separar acciones operativas sensibles (cancelación) y visibilidad estratégica (KPI) del flujo asistencial básico.
+**Impacto:** `seed_rbac_asignaciones` ajusta permisos por rol clínico; `frontend` en módulo Citas controla `crear/reprogramar/cancelar` por permisos independientes.
+
+### Registro 35
+
+**Fecha:** 2026-04-30
+**Decisión:** Separar explícitamente roles IAM de roles clínicos mediante nuevos roles dedicados (`Recepción Clínica`, `Médico Clínico`, `Especialista Clínico`) y sincronización RBAC con limpieza de asignaciones sobrantes.
+**Motivo:** Evitar acumulación accidental de privilegios (ej. personal clínico con permisos IAM de gestión de usuarios/roles) y alinear autorización con responsabilidades operativas reales.
+**Impacto:** `seed_roles` agrega roles clínicos; `seed_rbac_asignaciones` sincroniza permisos/roles por usuario seed con criterio de mínimo privilegio.
+
+### Registro 34
+
+**Fecha:** 2026-04-30
+**Decisión:** Pasar autorización clínica frontend a evaluación explícita por códigos de permiso (`modulo.accion`) y ampliar catálogo backend con permisos clínicos finos.
+**Motivo:** El matching heurístico por alias podía habilitar/denegar acciones de forma ambigua; se requiere trazabilidad y control fino por acción.
+**Impacto:** `seed_permisos` incorpora permisos clínicos, `seed_rbac_asignaciones` actualiza mapeos por rol y `authorization.ts` usa matrices explícitas de permisos para vista/escritura.
+
+### Registro 33
+
+**Fecha:** 2026-04-30
+**Decisión:** Eliminar fallback legacy de resolución de permisos en `DashboardUserContext` y usar `/api/auth/permissions` como única fuente de `permissionCodes`.
+**Motivo:** Ya existe endpoint dedicado y seeder RBAC que entrega datos efectivos; mantener doble estrategia elevaba complejidad y deuda técnica.
+**Impacto:** Menor latencia/ramas de error en frontend de sesión; autorización UI más predecible y alineada al contrato backend de permisos efectivos.
+
+### Registro 32
+
+**Fecha:** 2026-04-30
+**Decisión:** Incorporar seeder `rbac` para poblar asignaciones `rol_permiso` y `usuario_rol` en entornos de desarrollo.
+**Motivo:** Sin asignaciones, el endpoint `/api/auth/permissions` devolvía permisos vacíos y no permitía validar RBAC efectivo end-to-end.
+**Impacto:** `manage.py seed --only rbac` ahora deja usuarios base con roles/permisos útiles para pruebas (`admin` con permisos completos IAM, `dr.carlos` con perfil auditor).
+
+### Registro 31
+
+**Fecha:** 2026-04-30
+**Decisión:** Mantener temporalmente fallback por rol en frontend hasta disponer de asignaciones `usuario_rol` seed consistentes para poblar permisos efectivos.
+**Motivo:** Las pruebas en Docker muestran que `/api/auth/permissions` responde listas vacías para usuarios seed actuales por falta de vínculo usuario-rol, lo que impediría decisiones RBAC solo por permisos.
+**Impacto:** UI sigue funcional con fallback por `tipo_usuario`; se prioriza crear seeder de asignaciones usuario-rol como siguiente paso para cerrar RBAC real end-to-end.
+
+### Registro 30
+
+**Fecha:** 2026-04-30
+**Decisión:** Exponer endpoint backend `GET /api/auth/permissions` para entregar permisos efectivos y roles de la sesión actual.
+**Motivo:** Evitar que frontend dependa de múltiples endpoints administrativos para resolver permisos y reducir latencia/complejidad del flujo RBAC.
+**Impacto:** Nuevo `MePermissionsView` en `apps.auth`, rutas en `apps.auth.urls`, y `DashboardUserContext` prioriza esta fuente antes del fallback legacy.
+
+### Registro 29
+
+**Fecha:** 2026-04-30
+**Decisión:** Introducir resolución de permisos efectivos en frontend (`permissionCodes`) y priorizar esa fuente para autorización de vista/escritura, manteniendo fallback por rol.
+**Motivo:** Avanzar desde reglas estáticas por tipo de usuario hacia RBAC real sin romper flujo actual mientras backend no expone aún un endpoint único de permisos efectivos.
+**Impacto:** `DashboardUserContext` agrega carga de permisos (roles -> permisos -> códigos) y `authorization.ts` evalúa acceso por códigos cuando existen; módulos y Sidebar consumen este nuevo esquema.
+
+### Registro 28
+
+**Fecha:** 2026-04-30
+**Decisión:** Extender guardas de lectura por URL directa a todos los módulos clínicos principales, reutilizando `canViewClinicalModule`.
+**Motivo:** Evitar bypass de navegación (usuario sin menú visible pero con acceso directo por URL) y mantener consistencia de autorización UI.
+**Impacto:** `pacientes`, `especialistas`, `citas`, `consultas`, `agenda-medica` y `kpi` validan permiso de vista antes de cargar datos desde API.
+
+### Registro 27
+
+**Fecha:** 2026-04-30
+**Decisión:** Incorporar control de visibilidad de rutas del menú por rol (`canViewRoute`) y agregar guarda de acceso directo en agenda médica.
+**Motivo:** Reducir exposición de navegación no autorizada en UI y evitar que la URL directa muestre módulos clínicos a perfiles sin permiso de lectura.
+**Impacto:** `frontend/src/components/Sidebar.tsx` filtra `NAV_ITEMS` por `canViewRoute`; `frontend/src/app/dashboard/agenda-medica/page.tsx` valida vista antes de consultar API.
+
+### Registro 26
+
+**Fecha:** 2026-04-30
+**Decisión:** Centralizar autorización de acciones en frontend clínico mediante helper reusable `canWriteModule` y aplicar la política en módulos Pacientes, Especialistas/Horarios, Citas y Consultas.
+**Motivo:** Evitar duplicación de reglas por pantalla, mejorar mantenibilidad y reducir inconsistencias de UX al aplicar restricciones por rol.
+**Impacto:** Nuevo archivo `frontend/src/lib/authorization.ts`; acciones de escritura deshabilitadas por rol en los módulos clínicos principales y mensajes de solo lectura en UI.
+
+### Registro 25
+
+**Fecha:** 2026-04-30
+**Decisión:** Aplicar control de escritura por rol en el módulo de Citas del frontend, usando el perfil de `/api/auth/me` ya cargado en `DashboardUserContext`.
+**Motivo:** Reducir riesgo operativo y alinear la interfaz con el principio de mínimo privilegio sin esperar una capa completa de permisos finos en todos los módulos.
+**Impacto:** En `frontend/src/app/dashboard/citas/page.tsx`, solo `ADMIN` y `ADMINISTRATIVO` pueden programar/reprogramar/cancelar; `MEDICO` y `ESPECIALISTA` quedan en lectura con acciones deshabilitadas y mensaje contextual.
+
+### Registro 24
+
+**Fecha:** 2026-04-30
+**Decisión:** Reemplazar flujos de `window.prompt` en Citas por modales de aplicación para cancelar/reprogramar y enriquecer la tabla con nombres legibles.
+**Motivo:** Mejorar UX operativa, reducir errores de captura y alinear la interacción de Citas con el patrón visual reutilizable del dashboard clínico.
+**Impacto:** `frontend/src/app/dashboard/citas/page.tsx` ahora maneja estado de modales, validación mínima de campos y presentación de paciente/especialista por nombre en la tabla.
+
 ### Registro 23
 
 **Fecha:** 2026-04-29

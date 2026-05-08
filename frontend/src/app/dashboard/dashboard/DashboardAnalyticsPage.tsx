@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useDashboardUser } from '@/contexts/DashboardUserContext';
+import { canViewClinicalModule } from '@/lib/authorization';
 import styles from './page.module.css';
 
 interface SummaryRes {
@@ -88,10 +90,11 @@ function apiErr(e: unknown): string {
   const d = (e as { response?: { data?: Record<string, unknown> | string } }).response?.data;
   if (typeof d === 'string') return d;
   if (d && typeof d === 'object' && typeof d.detail === 'string') return d.detail;
-  return 'No se pudo cargar el dashboard KPI.';
+  return 'No se pudo cargar el dashboard.';
 }
 
-export default function KpiDashboardPage() {
+export default function DashboardAnalyticsPage() {
+  const { me, permissionCodes } = useDashboardUser();
   const [summary, setSummary] = useState<SummaryRes | null>(null);
   const [operativo, setOperativo] = useState<OperativoRes | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,10 +106,19 @@ export default function KpiDashboardPage() {
   const [preset, setPreset] = useState<PresetPeriod>('month');
   const [drillPage, setDrillPage] = useState(1);
   const drillPageSize = 10;
+  const canViewDashboard = canViewClinicalModule(me, 'dashboard', permissionCodes);
 
   useEffect(() => {
     let mounted = true;
     async function load() {
+      if (!canViewDashboard) {
+        setSummary(null);
+        setOperativo(null);
+        setDrill(null);
+        setError('No tienes permiso para ver el dashboard.');
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
@@ -118,9 +130,9 @@ export default function KpiDashboardPage() {
         const query = params.toString() ? `?${params.toString()}` : '';
 
         const [s, o, d] = await Promise.all([
-          api.get<SummaryRes>(`/api/kpi/summary${query}`),
-          api.get<OperativoRes>(`/api/kpi/operativo${query}`),
-          api.get<DrilldownRes>(`/api/kpi/citas-drilldown${query}&page=1&page_size=${drillPageSize}`),
+          api.get<SummaryRes>(`/api/dashboard/summary${query}`),
+          api.get<OperativoRes>(`/api/dashboard/operativo${query}`),
+          api.get<DrilldownRes>(`/api/dashboard/citas-drilldown${query}&page=1&page_size=${drillPageSize}`),
         ]);
         if (!mounted) return;
         setSummary(s.data);
@@ -137,7 +149,7 @@ export default function KpiDashboardPage() {
     return () => {
       mounted = false;
     };
-  }, [dateFrom, dateTo]);
+  }, [canViewDashboard, dateFrom, dateTo]);
 
   useEffect(() => {
     let mounted = true;
@@ -152,7 +164,7 @@ export default function KpiDashboardPage() {
       params.set('page_size', String(drillPageSize));
       const query = params.toString() ? `?${params.toString()}` : '';
       try {
-        const res = await api.get<DrilldownRes>(`/api/kpi/citas-drilldown${query}`);
+        const res = await api.get<DrilldownRes>(`/api/dashboard/citas-drilldown${query}`);
         if (mounted) setDrill(res.data);
       } catch {
         if (mounted) setDrill({ count: 0, page: 1, page_size: drillPageSize, results: [] });
@@ -162,7 +174,7 @@ export default function KpiDashboardPage() {
     return () => {
       mounted = false;
     };
-  }, [estadoDrill, dateFrom, dateTo, drillPage]);
+  }, [canViewDashboard, estadoDrill, dateFrom, dateTo, drillPage]);
 
   useEffect(() => {
     const { from, to } = getPresetDates(preset);
@@ -180,12 +192,12 @@ export default function KpiDashboardPage() {
     if (estadoDrill) params.set('estado', estadoDrill);
     const query = params.toString() ? `?${params.toString()}` : '';
 
-    const res = await api.get(`/api/kpi/citas-drilldown/export${query}`, { responseType: 'blob' });
+    const res = await api.get(`/api/dashboard/citas-drilldown/export${query}`, { responseType: 'blob' });
     const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.setAttribute('download', 'kpi-citas-drilldown.csv');
+    link.setAttribute('download', 'dashboard-citas-drilldown.csv');
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -195,7 +207,7 @@ export default function KpiDashboardPage() {
   return (
     <section>
       <header className={styles.pageHeader}>
-        <h1 className={styles.title}>Dashboard KPI Clínico</h1>
+        <h1 className={styles.title}>Dashboard clínico</h1>
         <p className={styles.muted}>Vista estratégica, táctica y operativa para decisiones del día a día.</p>
         <div className={styles.filters}>
           <div className={styles.presets}>

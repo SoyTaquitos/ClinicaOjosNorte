@@ -14,7 +14,9 @@ import { initialsFromMe, labelTipoUsuario } from '@/lib/meProfile';
 import styles from './DashboardNavbar.module.css';
 
 const PAGE_NAMES: Record<string, string> = {
-  '/dashboard':                 'Panel',
+  '/dashboard':                 'Dashboard',
+  '/dashboard/inicio':          'Inicio',
+  '/dashboard/dashboard':       'Dashboard clínico',
   '/dashboard/usuarios':        'Usuarios',
   '/dashboard/roles':           'Roles',
   '/dashboard/permisos':        'Permisos',
@@ -34,7 +36,7 @@ export default function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentPage = PAGE_NAMES[pathname] ?? 'Panel';
+  const currentPage = PAGE_NAMES[pathname] ?? 'Dashboard';
 
   const displayName =
     (me?.nombre_completo?.trim() || me?.username?.trim() || (loading ? '…' : 'Usuario')) ?? 'Usuario';

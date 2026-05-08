@@ -33,6 +33,7 @@ api_patterns = [
     path('', include('apps.especialistas.urls')),
     path('', include('apps.citas.urls')),
     path('', include('apps.consultas.urls')),
+    path('', include('apps.dashboard.urls')),
 ]
 
 urlpatterns = [

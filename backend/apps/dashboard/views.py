@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from apps.citas.models import Cita, EstadoCita
 from apps.pacientes.models import Paciente
 
-KPI_CACHE_TTL_SECONDS = 300
+DASHBOARD_CACHE_TTL_SECONDS = 300
 
 
 def _pct(part: int, total: int) -> float:
@@ -53,7 +53,7 @@ def _resolve_range(request, default_mode: str):
 
 
 def _cache_key(prefix: str, start_dt, end_dt):
-    return f'kpi:{prefix}:{start_dt.isoformat()}:{end_dt.isoformat()}'
+    return f'dashboard:{prefix}:{start_dt.isoformat()}:{end_dt.isoformat()}'
 
 
 def _build_drilldown_queryset(request):
@@ -72,9 +72,19 @@ def _build_drilldown_queryset(request):
     return qs, (start_dt, end_dt, estado), None
 
 
+def _parse_positive_int(value: str, field_name: str):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None, f'Parámetro inválido: {field_name} debe ser un entero positivo.'
+    if parsed < 1:
+        return None, f'Parámetro inválido: {field_name} debe ser un entero positivo.'
+    return parsed, None
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def kpi_summary(request):
+def dashboard_summary(request):
     start_dt, end_dt, period_type, error = _resolve_range(request, default_mode='monthly')
     if error:
         return Response({'detail': error}, status=400)
@@ -116,13 +126,13 @@ def kpi_summary(request):
             'canceladas_mes': citas_canceladas,
         },
     }
-    cache.set(_cache_key('summary', start_dt, end_dt), payload, KPI_CACHE_TTL_SECONDS)
+    cache.set(_cache_key('summary', start_dt, end_dt), payload, DASHBOARD_CACHE_TTL_SECONDS)
     return Response(payload)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def kpi_operativo(request):
+def dashboard_operativo(request):
     start_dt, end_dt, period_type, error = _resolve_range(request, default_mode='daily')
     if error:
         return Response({'detail': error}, status=400)
@@ -169,21 +179,26 @@ def kpi_operativo(request):
         'por_especialista': list(por_especialista),
         'alertas': alertas,
     }
-    cache.set(_cache_key('operativo', start_dt, end_dt), payload, KPI_CACHE_TTL_SECONDS)
+    cache.set(_cache_key('operativo', start_dt, end_dt), payload, DASHBOARD_CACHE_TTL_SECONDS)
     return Response(payload)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def kpi_citas_drilldown(request):
-    qs, ctx, error = _build_drilldown_queryset(request)
+def dashboard_citas_drilldown(request):
+    qs, _, error = _build_drilldown_queryset(request)
     if error:
         return Response({'detail': error}, status=400)
 
-    page = int(request.query_params.get('page', '1') or '1')
-    page_size = int(request.query_params.get('page_size', '20') or '20')
-    page = max(1, page)
-    page_size = min(max(1, page_size), 100)
+    page, page_error = _parse_positive_int(request.query_params.get('page', '1') or '1', 'page')
+    if page_error:
+        return Response({'detail': page_error}, status=400)
+
+    page_size, page_size_error = _parse_positive_int(request.query_params.get('page_size', '20') or '20', 'page_size')
+    if page_size_error:
+        return Response({'detail': page_size_error}, status=400)
+
+    page_size = min(page_size, 100)
 
     total = qs.count()
     offset = (page - 1) * page_size
@@ -213,7 +228,7 @@ def kpi_citas_drilldown(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def kpi_citas_drilldown_export(request):
+def dashboard_citas_drilldown_export(request):
     qs, ctx, error = _build_drilldown_queryset(request)
     if error:
         return Response({'detail': error}, status=400)
@@ -223,7 +238,7 @@ def kpi_citas_drilldown_export(request):
 
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     estado_slug = estado or 'todos'
-    filename = f'kpi-citas-{start_dt.date().isoformat()}-{end_dt.date().isoformat()}-{estado_slug}.csv'
+    filename = f'dashboard-citas-{start_dt.date().isoformat()}-{end_dt.date().isoformat()}-{estado_slug}.csv'
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
     writer = csv.writer(response)
