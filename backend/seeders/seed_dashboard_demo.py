@@ -21,6 +21,9 @@ from apps.pacientes.models import Paciente
 from apps.users.models import Usuario
 
 
+ACTIVE_SLOT_STATES = (EstadoCita.PROGRAMADA, EstadoCita.CONFIRMADA)
+
+
 @transaction.atomic
 def run():
     pacientes = list(Paciente.objects.filter(activo=True).order_by('id_paciente')[:6])
@@ -58,6 +61,15 @@ def run():
             paciente = pacientes[(i + j) % len(pacientes)]
             start = base + timedelta(days=day_offset, hours=j)
             end = start + timedelta(minutes=30)
+
+            # Evita violar la restriccion unica de slots activos por especialista+inicio.
+            if estado in ACTIVE_SLOT_STATES and Cita.objects.filter(
+                id_especialista=especialista,
+                fecha_hora_inicio=start,
+                estado__in=ACTIVE_SLOT_STATES,
+            ).exists():
+                existentes += 1
+                continue
 
             defaults = {
                 'fecha_hora_fin': end,

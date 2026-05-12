@@ -59,6 +59,13 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 **Motivo:** En ambientes recién reiniciados el dataset base era insuficiente para validar tendencias (cancelación/atención/drilldown/export) de forma consistente.
 **Impacto:** nuevo `seeders.seed_dashboard_demo` integrado al comando `seed --only dashboard-demo`; permite poblar datos analíticos idempotentes y verificar `/api/dashboard/*` con resultados no triviales.
 
+### Registro 52
+
+**Fecha:** 2026-05-07
+**Decisión:** Endurecer `seed_dashboard_demo` para evitar colisiones con la restricción `uq_cita_especialista_fecha_hora_activa`.
+**Motivo:** Al correr `seed` completo en bases con datos previos podía intentar crear una cita `PROGRAMADA/CONFIRMADA` en un slot ya ocupado por otra cita activa del mismo especialista.
+**Impacto:** el seeder ahora detecta conflicto de slot activo (`especialista + fecha_hora_inicio`) y marca el registro como existente en lugar de insertar; `python manage.py seed` vuelve a ser estable e idempotente.
+
 ### Registro 44
 
 **Fecha:** 2026-05-07

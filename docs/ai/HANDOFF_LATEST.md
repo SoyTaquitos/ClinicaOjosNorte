@@ -60,6 +60,8 @@
 50. **Validación tras refactor E2E:** suite completa mantiene 5/5 casos en verde.
 51. **Seeder dashboard agregado:** nuevo `--only dashboard-demo` para poblar volumen analítico de citas con estados mezclados.
 52. **Verificación dashboard post-reset:** `seed --only dashboard-demo` ejecutado OK y endpoints `/api/dashboard/summary`, `/api/dashboard/operativo`, `/api/dashboard/citas-drilldown` y export CSV responden correctamente.
+53. **Fix de estabilidad en seed:** `seed_dashboard_demo` ahora evita crear citas activas en slots ya ocupados y elimina error por restricción única (`uq_cita_especialista_fecha_hora_activa`).
+54. **Verificación final:** `python manage.py seed` completo ejecuta sin fallo tras el ajuste.
 
 ## Resumen previo (sigue válido)
 1. **KPI pro implementado:** drilldown con paginación (`page/page_size`) + export CSV (`/api/kpi/citas-drilldown/export`).

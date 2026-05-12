@@ -77,6 +77,7 @@
 - **Hardening dashboard drilldown (backend):** `GET /api/dashboard/citas-drilldown` valida `page` y `page_size` como enteros positivos; ante valor inválido responde `400` con mensaje funcional.
 - **Cobertura dashboard (backend):** nuevas pruebas en `apps/dashboard/tests/test_dashboard_endpoints.py` para rango inválido en `summary`, paginación inválida en `drilldown` y contrato CSV en `export`.
 - **Seeder dashboard analítico:** `python manage.py seed --only dashboard-demo` genera citas históricas/futuras con estados mixtos para alimentar KPIs, operativo diario y drilldown exportable.
+- **Seeder dashboard robustecido:** `seed_dashboard_demo` evita conflictos de slot activo (`PROGRAMADA/CONFIRMADA`) por especialista+fecha_hora_inicio, previniendo `IntegrityError` en corridas repetidas de `seed`.
 - **Login:** respuesta **429** por bloqueo temporal; UI muestra cuenta atrás aproximada (`retry_after_seconds`).
 - **IAM (listados):** páginas consumen API paginada: `GET /api/users/`, `GET /api/roles/`, `GET /api/permisos/`; manejo de 403 con mensaje al usuario.
 - **Bitácora:** datos reales vía `GET /api/bitacora/` con filtros, orden, búsqueda y paginación; KPIs y horas en **Bolivia** (`src/lib/timezone.ts`, `America/La_Paz`, locale `es-BO`).

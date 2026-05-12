@@ -94,6 +94,16 @@ docker compose exec backend python manage.py makemigrations
 # Aplicar migraciones
 docker compose exec backend python manage.py migrate
 
+#Reiniciar contenedor
+docker compose restart backend
+
+docker compose restart frontend
+#
+docker compose exec backend python manage.py makemigrations
+
+#
+docker compose exec backend python manage.py migrate
+
 # Ver estado de migraciones
 #docker compose exec backend python manage.py showmigrations
 
