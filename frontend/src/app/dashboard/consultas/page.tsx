@@ -31,7 +31,13 @@ export default function ConsultasPage() {
 
   const [form, setForm] = useState({
     id_cita: '', id_paciente: '', id_especialista: '', motivo_consulta: '', anamnesis: '', hallazgos: '', diagnostico: '', plan_tratamiento: '',
+    peso_kg: '', talla_cm: '', temperatura_c: '', presion_arterial: '', frecuencia_cardiaca: '', frecuencia_respiratoria: '', saturacion_oxigeno: '', triaje_observaciones: '',
+    presion_intraocular_od: '', presion_intraocular_oi: '',
+    refraccion_od_esfera: '', refraccion_od_cilindro: '', refraccion_od_eje: '',
+    refraccion_oi_esfera: '', refraccion_oi_cilindro: '', refraccion_oi_eje: '',
+    agudeza_visual_sc: '', agudeza_visual_cc: '', diagnostico_secundario: '', codigo_cie10: '',
   });
+
   const canManageConsultas = canWriteModule(me, 'consultas', permissionCodes);
   const canViewConsultas = canViewClinicalModule(me, 'consultas', permissionCodes);
 
@@ -83,11 +89,38 @@ export default function ConsultasPage() {
         motivo_consulta: form.motivo_consulta,
         anamnesis: form.anamnesis,
         hallazgos: form.hallazgos,
+        peso_kg: form.peso_kg ? Number(form.peso_kg) : null,
+        talla_cm: form.talla_cm ? Number(form.talla_cm) : null,
+        temperatura_c: form.temperatura_c ? Number(form.temperatura_c) : null,
+        presion_arterial: form.presion_arterial || null,
+        frecuencia_cardiaca: form.frecuencia_cardiaca ? Number(form.frecuencia_cardiaca) : null,
+        frecuencia_respiratoria: form.frecuencia_respiratoria ? Number(form.frecuencia_respiratoria) : null,
+        saturacion_oxigeno: form.saturacion_oxigeno ? Number(form.saturacion_oxigeno) : null,
+        triaje_observaciones: form.triaje_observaciones || null,
+        presion_intraocular_od: form.presion_intraocular_od ? Number(form.presion_intraocular_od) : null,
+        presion_intraocular_oi: form.presion_intraocular_oi ? Number(form.presion_intraocular_oi) : null,
+        refraccion_od_esfera: form.refraccion_od_esfera ? Number(form.refraccion_od_esfera) : null,
+        refraccion_od_cilindro: form.refraccion_od_cilindro ? Number(form.refraccion_od_cilindro) : null,
+        refraccion_od_eje: form.refraccion_od_eje ? Number(form.refraccion_od_eje) : null,
+        refraccion_oi_esfera: form.refraccion_oi_esfera ? Number(form.refraccion_oi_esfera) : null,
+        refraccion_oi_cilindro: form.refraccion_oi_cilindro ? Number(form.refraccion_oi_cilindro) : null,
+        refraccion_oi_eje: form.refraccion_oi_eje ? Number(form.refraccion_oi_eje) : null,
+        agudeza_visual_sc: form.agudeza_visual_sc || null,
+        agudeza_visual_cc: form.agudeza_visual_cc || null,
         diagnostico: form.diagnostico,
+        diagnostico_secundario: form.diagnostico_secundario || null,
+        codigo_cie10: form.codigo_cie10 || null,
         plan_tratamiento: form.plan_tratamiento,
       });
       setOk('Consulta registrada y cita marcada como ATENDIDA.');
-      setForm({ id_cita: '', id_paciente: '', id_especialista: '', motivo_consulta: '', anamnesis: '', hallazgos: '', diagnostico: '', plan_tratamiento: '' });
+      setForm({
+        id_cita: '', id_paciente: '', id_especialista: '', motivo_consulta: '', anamnesis: '', hallazgos: '', diagnostico: '', plan_tratamiento: '',
+        peso_kg: '', talla_cm: '', temperatura_c: '', presion_arterial: '', frecuencia_cardiaca: '', frecuencia_respiratoria: '', saturacion_oxigeno: '', triaje_observaciones: '',
+        presion_intraocular_od: '', presion_intraocular_oi: '',
+        refraccion_od_esfera: '', refraccion_od_cilindro: '', refraccion_od_eje: '',
+        refraccion_oi_esfera: '', refraccion_oi_cilindro: '', refraccion_oi_eje: '',
+        agudeza_visual_sc: '', agudeza_visual_cc: '', diagnostico_secundario: '', codigo_cie10: '',
+      });
       await load();
     } catch (error) {
       setErr(apiErr(error));
@@ -98,7 +131,7 @@ export default function ConsultasPage() {
     <>
       <div className={styles.pageHeader}>
         <h1 className={styles.title}>Consultas medicas</h1>
-        <p className={styles.muted}>Registro de atencion clinica vinculado a cita y consistencia paciente-especialista.</p>
+        <p className={styles.muted}>Registro clínico con triaje, presión intraocular, refracción, diagnóstico y plan de tratamiento.</p>
       </div>
       {err && <div className={styles.err}>{err}</div>}
       {ok && <div className={styles.ok}>{ok}</div>}
@@ -117,19 +150,46 @@ export default function ConsultasPage() {
         <div className={styles.actions}><button type="button" className={styles.btnPrimary} onClick={createConsulta} disabled={loading || !canManageConsultas}>Registrar consulta</button></div>
       </div>
 
+      <h3 className={styles.subtitle}>Triaje y presión intraocular</h3>
+      <div className={styles.grid2}>
+        <div className={styles.field}><label>Peso (kg)</label><input type="number" step="0.01" value={form.peso_kg} onChange={(e) => setForm((p) => ({ ...p, peso_kg: e.target.value }))} /></div>
+        <div className={styles.field}><label>Talla (cm)</label><input type="number" step="0.01" value={form.talla_cm} onChange={(e) => setForm((p) => ({ ...p, talla_cm: e.target.value }))} /></div>
+        <div className={styles.field}><label>Temperatura (°C)</label><input type="number" step="0.1" value={form.temperatura_c} onChange={(e) => setForm((p) => ({ ...p, temperatura_c: e.target.value }))} /></div>
+        <div className={styles.field}><label>Presión arterial</label><input placeholder="120/80" value={form.presion_arterial} onChange={(e) => setForm((p) => ({ ...p, presion_arterial: e.target.value }))} /></div>
+        <div className={styles.field}><label>Frecuencia cardiaca</label><input type="number" value={form.frecuencia_cardiaca} onChange={(e) => setForm((p) => ({ ...p, frecuencia_cardiaca: e.target.value }))} /></div>
+        <div className={styles.field}><label>Frecuencia respiratoria</label><input type="number" value={form.frecuencia_respiratoria} onChange={(e) => setForm((p) => ({ ...p, frecuencia_respiratoria: e.target.value }))} /></div>
+        <div className={styles.field}><label>Saturación O₂</label><input type="number" value={form.saturacion_oxigeno} onChange={(e) => setForm((p) => ({ ...p, saturacion_oxigeno: e.target.value }))} /></div>
+        <div className={styles.field}><label>PIO OD (mmHg)</label><input type="number" step="0.1" value={form.presion_intraocular_od} onChange={(e) => setForm((p) => ({ ...p, presion_intraocular_od: e.target.value }))} /></div>
+        <div className={styles.field}><label>PIO OI (mmHg)</label><input type="number" step="0.1" value={form.presion_intraocular_oi} onChange={(e) => setForm((p) => ({ ...p, presion_intraocular_oi: e.target.value }))} /></div>
+        <div className={styles.field}><label>Observaciones triaje</label><textarea value={form.triaje_observaciones} onChange={(e) => setForm((p) => ({ ...p, triaje_observaciones: e.target.value }))} /></div>
+      </div>
+
+      <h3 className={styles.subtitle}>Examen de refracción</h3>
+      <div className={styles.grid2}>
+        <div className={styles.field}><label>OD Esfera</label><input type="number" step="0.25" value={form.refraccion_od_esfera} onChange={(e) => setForm((p) => ({ ...p, refraccion_od_esfera: e.target.value }))} /></div>
+        <div className={styles.field}><label>OD Cilindro</label><input type="number" step="0.25" value={form.refraccion_od_cilindro} onChange={(e) => setForm((p) => ({ ...p, refraccion_od_cilindro: e.target.value }))} /></div>
+        <div className={styles.field}><label>OD Eje</label><input type="number" value={form.refraccion_od_eje} onChange={(e) => setForm((p) => ({ ...p, refraccion_od_eje: e.target.value }))} /></div>
+        <div className={styles.field}><label>OI Esfera</label><input type="number" step="0.25" value={form.refraccion_oi_esfera} onChange={(e) => setForm((p) => ({ ...p, refraccion_oi_esfera: e.target.value }))} /></div>
+        <div className={styles.field}><label>OI Cilindro</label><input type="number" step="0.25" value={form.refraccion_oi_cilindro} onChange={(e) => setForm((p) => ({ ...p, refraccion_oi_cilindro: e.target.value }))} /></div>
+        <div className={styles.field}><label>OI Eje</label><input type="number" value={form.refraccion_oi_eje} onChange={(e) => setForm((p) => ({ ...p, refraccion_oi_eje: e.target.value }))} /></div>
+        <div className={styles.field}><label>Agudeza visual SC</label><input placeholder="20/40" value={form.agudeza_visual_sc} onChange={(e) => setForm((p) => ({ ...p, agudeza_visual_sc: e.target.value }))} /></div>
+        <div className={styles.field}><label>Agudeza visual CC</label><input placeholder="20/20" value={form.agudeza_visual_cc} onChange={(e) => setForm((p) => ({ ...p, agudeza_visual_cc: e.target.value }))} /></div>
+      </div>
+
+      <h3 className={styles.subtitle}>Diagnóstico y plan</h3>
       <div className={styles.grid2}>
         <div className={styles.field}><label>Motivo consulta</label><textarea value={form.motivo_consulta} onChange={(e) => setForm((p) => ({ ...p, motivo_consulta: e.target.value }))} /></div>
         <div className={styles.field}><label>Anamnesis</label><textarea value={form.anamnesis} onChange={(e) => setForm((p) => ({ ...p, anamnesis: e.target.value }))} /></div>
         <div className={styles.field}><label>Hallazgos</label><textarea value={form.hallazgos} onChange={(e) => setForm((p) => ({ ...p, hallazgos: e.target.value }))} /></div>
-        <div className={styles.field}><label>Diagnostico / Plan</label><textarea value={`${form.diagnostico}\n${form.plan_tratamiento}`} onChange={(e) => {
-          const [diag, ...plan] = e.target.value.split('\n');
-          setForm((p) => ({ ...p, diagnostico: diag || '', plan_tratamiento: plan.join('\n') }));
-        }} /></div>
+        <div className={styles.field}><label>Diagnóstico principal</label><textarea value={form.diagnostico} onChange={(e) => setForm((p) => ({ ...p, diagnostico: e.target.value }))} /></div>
+        <div className={styles.field}><label>Diagnóstico secundario</label><textarea value={form.diagnostico_secundario} onChange={(e) => setForm((p) => ({ ...p, diagnostico_secundario: e.target.value }))} /></div>
+        <div className={styles.field}><label>Código CIE10</label><input value={form.codigo_cie10} onChange={(e) => setForm((p) => ({ ...p, codigo_cie10: e.target.value }))} /></div>
+        <div className={styles.field}><label>Plan de tratamiento</label><textarea value={form.plan_tratamiento} onChange={(e) => setForm((p) => ({ ...p, plan_tratamiento: e.target.value }))} /></div>
       </div>
 
       <div className={styles.tableWrap} style={{ marginTop: '1rem' }}>
         <table className={styles.table}>
-          <thead><tr><th>ID</th><th>Cita</th><th>Paciente</th><th>Especialista</th><th>Diagnostico</th><th>Fecha</th></tr></thead>
+          <thead><tr><th>ID</th><th>Cita</th><th>Paciente</th><th>Especialista</th><th>Diagnóstico</th><th>Fecha</th></tr></thead>
           <tbody>
             {loading && <tr><td colSpan={6}>Cargando...</td></tr>}
             {!loading && rows.map((r) => (

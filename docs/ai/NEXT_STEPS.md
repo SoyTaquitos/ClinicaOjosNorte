@@ -3,6 +3,8 @@
 Lista priorizada de los siguientes pasos a realizar en el proyecto Oftalmología SI1.
 
 ## Inmediato
+- [x] Configurar sistema multi-agente OpenCode oficial en `.opencode/agents/` con `orchestrator` + subagentes por dominio.
+- [x] Documentar sistema OpenCode en `.opencode/README.md` y estado de skills en `.opencode/skills/README.md`.
 - [ ] Levantar Docker (`docker-compose up --build`) y verificar migraciones sin errores.
 - [ ] Regenerar entorno backend para instalar `drf-spectacular` y validar `/api/docs/` + `/api/schema/`.
 - [ ] Ejecutar migraciones nuevas de dominio clínico (`pacientes`, `especialistas`, `citas`, `consultas`) y validar constraints de horarios/solapamiento.
@@ -14,6 +16,7 @@ Lista priorizada de los siguientes pasos a realizar en el proyecto Oftalmología
 - [ ] Probar tareas VS Code (`Run Task`) para validar comandos rápidos en entorno real.
 - [ ] Validar que runtime/agente que uses interpreta correctamente frontmatter en `.agents/agents/*.md`.
 - [ ] Probar routing del `orchestrator` con casos que deban escalar a `architect-planner` e `infra`.
+- [ ] Ejecutar `opencode debug config` para validar carga de agentes en runtime local (si CLI disponible en entorno).
 
 ## Corto Plazo
 - [x] Frontend: conectar módulos clínicos al backend nuevo (pacientes, especialistas, horarios, citas, agenda, consulta) en versión base operativa.
@@ -25,8 +28,11 @@ Lista priorizada de los siguientes pasos a realizar en el proyecto Oftalmología
 - [x] Frontend: Listados IAM (usuarios, roles, permisos) contra API.
 - [ ] Frontend: Formularios y acciones de escritura IAM (crear/editar usuario, roles, etc.) según endpoints y permisos.
 - [x] Frontend: Módulo de gestión de Pacientes (tabla, alta, edición, eliminación, filtros y búsqueda).
+- [x] Implementar CU12/CU13/CU14 en flujo de consultas (triaje + PIO, refracción, diagnóstico ampliado).
+- [x] Implementar CU21/CU22/CU23 con endpoints y vista de reportes por período.
 
 ## Mediano Plazo
+- [ ] Continuar fase 2 de paquetización backend tras piloto de `roles`: mover físicamente `permisos`, `users`, `auth`, `security` con compatibilidad y regresión por app.
 - [x] Dashboard KPI inicial (`/dashboard/kpi`) con endpoints agregados backend (`/api/kpi/summary`, `/api/kpi/operativo`) y diseño responsivo.
 - [x] KPI avanzado: filtros por rango de fechas, drilldown por estado y snapshot cacheado en backend.
 - [x] KPI pro: paginación de drilldown, export CSV y presets rápidos de período.
@@ -59,6 +65,18 @@ Lista priorizada de los siguientes pasos a realizar en el proyecto Oftalmología
   - Completado: recepción sin `citas.cancelar`, y médico/especialista sin `kpi.ver` por defecto.
   - Pendiente: validar con stakeholders si `kpi.ver` debe habilitarse a jefaturas médicas mediante rol adicional (p. ej. `Coordinador Clínico`).
 - [ ] Evaluar paginación y filtros avanzados en listas grandes de dominio clínico.
+- [x] Agregar export CSV para reportes de pacientes atendidos, citas por período y consultas por especialista.
+- [x] Agregar export en CSV, Excel y PDF para reportes de pacientes, citas y consultas por especialista.
+- [ ] Incorporar filtros por especialista y estado en UI de `/dashboard/reportes`.
+- [ ] Agregar filtro visual `especialista` en bloque "Consultas por especialista" para auditoría rápida de cobertura por médico.
+- [ ] Agregar detalle opcional de "último especialista que atendió" en bloque "Pacientes atendidos" para mayor trazabilidad clínica.
+- [ ] Añadir selector visual único de formato de exportación (CSV/Excel/PDF) con preferencia persistente por usuario en `/dashboard/reportes`.
+- [x] Persistir preferencias de personalización de reportes por usuario (orden, dirección, búsquedas) en localStorage o perfil.
+- [ ] Extender export para respetar también columnas visibles activas (además de filtros/orden), vía `columns=` en backend.
+- [x] Ampliar dataset demo para reportes a 6 meses con mayor densidad y coherencia entre pacientes/citas/consultas.
+- [ ] Añadir comando smoke `seed --only reportes-6m` que encadene `clinica + dashboard-demo + consultas-demo` en una sola ejecución.
+- [x] Limpiar etiquetas `CUxx` en textos visibles de la UI de reportes.
+- [ ] Refactor fase 2 de `apps.consultas`: evaluar descomposición en submódulos internos (`triaje`, `refraccion`, `diagnostico`) con contratos y migración progresiva sin romper API.
 - [ ] Ampliar suite E2E Playwright (login, guards de rol, flujo citas y fallback 409 desactivar).
 - [ ] Añadir seeder complementario para series mensuales largas (>= 90 días) orientado a pruebas de tendencia dashboard.
 - [ ] Agregar validación automática post-seed para `/api/dashboard/*` en script de smoke (status + shape mínima de payload).

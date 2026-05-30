@@ -60,7 +60,7 @@ LOCAL_APPS = [
     'apps.users',     # Usuario (AUTH_USER_MODEL)
     'apps.security',  # Bloqueo login, config intentos, tokens recuperación (tablas existentes)
     'apps.auth',      # Login, logout, JWT, perfil sesión, reset password (sin modelos propios)
-    'apps.roles',     # Rol, UsuarioRol, RolPermiso
+    'apps.Usuarios.roles',     # Rol, UsuarioRol, RolPermiso (paquete Usuarios)
     'apps.permisos',  # Permiso (granular por módulo)
     'apps.bitacora',  # Registro de auditoría del sistema
     'apps.pacientes',
@@ -68,6 +68,7 @@ LOCAL_APPS = [
     'apps.citas',
     'apps.consultas',
     'apps.dashboard',
+    'apps.reportes',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

@@ -4,6 +4,15 @@
 **Oftalmología SI1 — Clínica de Ojos Norte.** Backend Django + frontend Next.js (panel web IAM y auditoría). Modelo SI1: paciente = datos sin login; sin app móvil; sin registro público.
 
 ## Backend
+- **Paquetización lógica por dominio CU (2026-05-30):** se crea estructura de paquetes lógicos en `backend/apps`:
+  - `Usuarios/` (CU1-CU6)
+  - `GestionClinica/` (CU7-CU17)
+  - `HistorialClinico/` (CU18-CU20)
+  - `ReportesEstadisticas/` (CU21-CU23, CU25)
+  - `Bitacora/` (CU24)
+  con aliases no disruptivos hacia apps reales actuales (`apps.auth`, `apps.users`, `apps.roles`, etc.).
+- **Mapa formal CU->app:** nuevo `backend/apps/PACKAGE_CU_MAP.md` documenta cobertura actual y CUs pendientes (CU15-CU20 parcialmente/no implementados en módulo dedicado).
+- **Paquetización fase 2 iniciada (traslado físico piloto):** módulo de roles movido a `apps/Usuarios/roles` como app Django activa (`INSTALLED_APPS: apps.Usuarios.roles`, include URLs desde `apps.Usuarios.roles.urls`) manteniendo compatibilidad de imports legacy vía wrappers en `apps.roles.*`.
 - **TIME_ZONE:** `America/La_Paz` (Bolivia, UTC-4, sin horario de verano). Las fechas se almacenan en UTC (`USE_TZ = True`).
 - **Usuario:** tipos `ADMIN`, `ADMINISTRATIVO`, `MEDICO`, `ESPECIALISTA` (sin `PACIENTE`).
 - **Bloqueo temporal por login:** tras N intentos fallidos con la misma clave (email en minúsculas o username tal cual), el login devuelve **429** con `retry_after_seconds`. Umbrales en BD: `configuracion_login_seguridad` (fila única); estado por clave en `bloqueo_intento_login`. **Solo ADMIN:** `GET/PATCH /api/security/login-config/`. Panel: `/dashboard/seguridad-login`. Independiente del estado manual `BLOQUEADO` del usuario.
@@ -47,6 +56,7 @@
 - **Módulo Citas (frontend):** ruta `/dashboard/citas` conectada a `/api/citas` con programación y acciones `cancelar`/`reprogramar` mediante modales en UI (sin `window.prompt`), con protección de doble envío, validación de fecha/hora, mínimo de caracteres en motivo y mejoras de accesibilidad (ESC, foco inicial, foco contenido en modal, `role="dialog"` + `aria-modal`, mensajes inline por campo). Política actual en UI: escritura habilitada para `ADMIN` y `ADMINISTRATIVO`; `MEDICO`/`ESPECIALISTA` operan en modo lectura en este módulo.
 - **Módulo Agenda médica (frontend):** ruta `/dashboard/agenda-medica` en modo lectura contra `/api/agenda-medica`.
 - **Módulo Consultas médicas (frontend):** ruta `/dashboard/consultas` conectada a `/api/consultas-medicas` para registrar consulta y listar historial; política UI de escritura activa para `ADMIN`/`MEDICO`/`ESPECIALISTA`.
+- **CU12/CU13/CU14 implementados (consultas):** `ConsultaMedica` ahora almacena campos clínicos de triaje y presión intraocular (peso/talla/temperatura/PA/FC/FR/SatO2/PIO OD-OI), examen de refracción (OD/OI esfera-cilindro-eje y AV), y diagnóstico ampliado (`diagnostico_secundario`, `codigo_cie10`) con validaciones backend de rango.
 - **Autorización frontend reusable:** nuevo helper `frontend/src/lib/authorization.ts` con `canWriteModule(me, module)` para centralizar políticas de acciones por módulo clínico.
 - **Autorización frontend efectiva (RBAC):** `DashboardUserContext` resuelve `permissionCodes` desde `GET /api/auth/permissions` como fuente única; `authorization.ts` evalúa primero permisos efectivos y mantiene fallback por `tipo_usuario` solo en helper para compatibilidad controlada.
 - **Endpoint backend de permisos efectivos:** nuevo `GET /api/auth/permissions` devuelve códigos efectivos de permiso y roles de la sesión, para reducir múltiples llamadas desde frontend y estabilizar evaluación RBAC en UI.
@@ -63,6 +73,7 @@
   - `Médico Clínico` y `Especialista Clínico`: no incluyen `kpi.ver` por defecto.
   - `Citas` en frontend ya controla acciones por permiso específico (`citas.crear`, `citas.reprogramar`, `citas.cancelar`).
 - **Visibilidad de navegación por rol (frontend):** `Sidebar` ahora filtra rutas con `canViewRoute(me, href)` desde `frontend/src/lib/authorization.ts`, ocultando entradas no autorizadas (IAM/admin y módulos clínicos para perfiles no clínicos).
+- **Sidebar agrupado por paquetes CU (frontend, 2026-05-30):** navegación reorganizada por secciones: `Reportes y estadísticas`, `Usuarios`, `Gestión clínica`, `Historial clínico` (placeholder "Próximamente"), y `Bitácora`, manteniendo filtros RBAC por ruta (`canViewRoute`).
 - **Guardas de lectura directa (URL):** `agenda-medica`, `pacientes`, `especialistas`, `citas`, `consultas` y `kpi` validan acceso con `canViewClinicalModule` antes de consultar API.
 - **Endpoints KPI (backend):**
   - `GET /api/dashboard/summary` (headline mensual + distribución de estados + datos tácticos).
@@ -89,6 +100,39 @@
 - **Ruta canónica dashboard:** `/dashboard` queda como única URL funcional del módulo analítico; `/dashboard/dashboard` se conserva solo como alias legacy con redirección server-side a `/dashboard`.
 - **Pruebas E2E iniciales (frontend):** se integra Playwright con `npm run test:e2e`; primer caso valida que `/dashboard/dashboard` no permanezca como URL final y respete el flujo de redirección canónica.
 - **Guard de sesión validado por E2E:** suite Playwright ahora cubre `/dashboard` sin token (redirige a `/login`) y `/dashboard` con token presente en localStorage (permanece en dashboard).
+- **CU21/CU22/CU23 implementados (reportes):** nuevos endpoints backend
+  - `GET /api/reportes/pacientes-atendidos`
+  - `GET /api/reportes/citas-por-periodo`
+  - `GET /api/reportes/consultas-por-especialista`
+  con filtros `date_from/date_to` y respuesta `periodo + summary + items`.
+- **Refactor modular de reportes (2026-05-30):** los endpoints de reportes se mueven de `apps.dashboard` a módulo dedicado `apps.reportes` (views, urls, tests propios) para respetar separación por dominio.
+- **Seeders ampliados (2026-05-30):** `seed_dashboard_demo` ahora genera volumen semanal para ~6 meses de historial + ventana futura corta; `seed_consultas_demo` amplía objetivo y consume también citas `ATENDIDA` para poblar reportes clínicos con mayor densidad.
+- **Seeders masivos 6 meses (actualización):**
+  - `seed_clinica` genera base ampliada de pacientes (objetivo +60 sintéticos idempotentes).
+  - `seed_dashboard_demo` aumenta densidad temporal (cada 3 días en ventana de 180 días + proyección futura).
+  - `seed_consultas_demo` eleva objetivo a `360` consultas y completa citas faltantes para sostener ese volumen.
+  - Verificación post-seed en entorno actual: `pacientes=72`, `citas=412`, `consultas=360`.
+- **Ajuste de cobertura de reportes por especialista (2026-05-30):**
+  - Se detectó sesgo de datos: reporte `consultas-por-especialista` mostraba solo 2 especialistas porque las 360 consultas existentes estaban concentradas en IDs 1 y 2.
+  - `seed_clinica` amplía staff clínico (7 usuarios activos; 6 perfiles de especialista activos).
+  - `seed_consultas_demo` ahora asegura piso mínimo por especialista (`MIN_CONSULTAS_POR_ESPECIALISTA = 40`) para evitar reportes incompletos.
+  - Verificación post-ajuste: distribución consultas por especialista `181, 179, 40, 40, 40, 40`.
+- **UI reportes sin prefijos CU:** pantalla `/dashboard/reportes` reemplaza títulos/descripción con nombres funcionales (sin etiquetas `CUxx`).
+- **Exportables de reportes (nuevo):** cada reporte en `/dashboard/reportes` permite exportación en **CSV, Excel (`.xlsx`) y PDF** mediante endpoints dedicados:
+  - `/api/reportes/pacientes-atendidos/export`
+  - `/api/reportes/citas-por-periodo/export`
+  - `/api/reportes/consultas-por-especialista/export`
+  con `file_format=csv|xlsx|pdf`.
+- **Detalle temporal en "Pacientes atendidos" (2026-05-30):** el reporte ahora incluye por paciente `total_consultas`, `primera_atencion` y `ultima_atencion` (ISO datetime), visible en UI y en exportables CSV/XLSX/PDF.
+- **Consultas como módulo clínico propio:** CU12/CU13/CU14 permanecen en `apps.consultas` (módulo dedicado del dominio de atención), separado de analítica/reportes.
+- **Frontend reportes clínicos:** nueva ruta `/dashboard/reportes` con generación por rango de fechas para CU21/CU22/CU23; navegación habilitada en Sidebar y control de acceso por permiso `reportes.ver`.
+- **UI reportes mejorada (responsive):** `/dashboard/reportes` usa layout adaptativo móvil/escritorio (toolbar en grid responsivo, secciones en cards con acciones de export por bloque y tablas con scroll horizontal controlado).
+- **UI reportes personalizable (2026-05-30):** cada bloque (`pacientes atendidos`, `citas por período`, `consultas por especialista`) incorpora búsqueda local + orden configurable asc/desc por columnas clave (A-Z / Z-A y menor-mayor / mayor-menor).
+- **UI reportes personalizable v2 (2026-05-30):** se agrega persistencia por usuario en `localStorage` de filtros/orden/dirección/tamaño de página/columnas visibles, paginación por bloque, selector de columnas visible/oculta y exportación alineada con filtros/orden actuales enviando `q`, `sort_by`, `sort_dir` al backend.
+- **Backend reportes (query customization):** endpoints y exportables de `apps.reportes` aceptan `q`, `sort_by`, `sort_dir` para aplicar búsqueda y orden en respuesta y archivos exportados.
+- **Texto frontend sin prefijos CU:** no quedan menciones `CUxx` en código de `frontend/src` para títulos/descripciones de módulos clínicos y reportes.
+- **RBAC reportes:** `seed_permisos` agrega `reportes.ver`; `seed_rbac_asignaciones` lo asigna a roles clínicos y admin.
+- **Migración clínica nueva:** `consultas.0002_cu12_cu13_cu14_fields` aplicada.
 - **RBAC Sidebar validado por E2E:** Playwright verifica visibilidad de navegación por rol en `Menú principal` (ADMIN ve IAM; MEDICO no ve IAM y mantiene módulos clínicos permitidos), con mocks de endpoints de sesión/permisos.
 - **Suite E2E organizada por responsabilidad:** pruebas separadas en `auth-guard.spec.ts` (redirect + guard sesión) y `rbac-sidebar.spec.ts` (visibilidad de navegación por rol).
 - **Docker compose (frontend env):** se evita interpolación redundante en `docker-compose.yml`; variables de app se leen desde `.env` vía `env_file` y desaparece warning por variable no seteada en shell.
@@ -128,6 +172,14 @@ El archivo **`BaseDeDatos.sql`** (DBML para dbdiagram.io) debe mantenerse alinea
 - Registro índice: `.agents/agents/README.md`.
 - Formato adoptado: **híbrido** (frontmatter machine-readable + cuerpo detallado de operación) para compatibilidad con runners de agentes y legibilidad humana.
 - **Gobernanza de diseño para agentes:** se agrega `docs/ai/DESIGN.md` como contrato de diseño UI/UX por tipo de sistema, junto a `docs/ai/SKILLS_REGISTRY.md` y `docs/ai/PROMPTS_LIBRARY.md` para habilitar un subagente especializado `design-orchestrator`.
+
+## Sistema multi-agente OpenCode oficial (`.opencode/agents`)
+- Se configura estructura oficial OpenCode en `.opencode/`.
+- Agente principal `orchestrator` creado con `mode: primary` y delegacion por dominio mediante `permission.task`.
+- Subagentes creados: `backend`, `frontend`, `ui-ux`, `architecture`, `architect-planner`, `code-review`, `qa-testing`, `devops`.
+- `code-review` queda en modo solo revision (`edit: deny`).
+- No se crea `mobile` por falta de evidencia de app mobile en el repo actual.
+- Se crea documentacion operativa en `.opencode/README.md` y skills en `.opencode/skills/README.md`.
 
 ## Setup VS Code (`.vscode/`)
 - Se agregó `.vscode/settings.json` para flujo consistente en equipo (PowerShell, format on save, exclusiones de búsqueda/archivos, pestañas persistentes).

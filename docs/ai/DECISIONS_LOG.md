@@ -10,6 +10,55 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+### Registro 53
+
+**Fecha:** 2026-05-30
+**Decisión:** Adoptar formato oficial OpenCode para sistema multi-agente en `.opencode/agents/` (sin `README` dentro de `agents`) y mantener `.agents/agents` como legado no destructivo.
+**Motivo:** Estandarizar compatibilidad con runtime OpenCode actual (frontmatter oficial `description`, `mode`, `permission`) y evitar carga accidental de agentes no deseados.
+**Impacto:** nuevo `orchestrator` primary y subagentes especializados en `.opencode/agents/`; documentacion en `.opencode/README.md` y `.opencode/skills/README.md`; `mobile` no se crea por falta de evidencia de stack mobile.
+
+### Registro 54
+
+**Fecha:** 2026-05-30
+**Decisión:** Implementar CU12/CU13/CU14 extendiendo `ConsultaMedica` (sin crear tabla separada de triaje/refracción) y exponer CU21/CU22/CU23 como endpoints de `reportes` dentro de `apps.dashboard`.
+**Motivo:** minimizar complejidad de integración inicial, aprovechar flujo existente de consultas y habilitar valor funcional inmediato en frontend con cambios acotados y trazables.
+**Impacto:** migración `consultas.0002_cu12_cu13_cu14_fields`; validaciones clínicas en serializer; nuevos endpoints `/api/reportes/*`; nueva ruta frontend `/dashboard/reportes`; permiso RBAC `reportes.ver` incorporado en seeders.
+
+### Registro 55
+
+**Fecha:** 2026-05-30
+**Decisión:** Reubicar reportes clínicos en módulo backend dedicado `apps.reportes` y retirar esos handlers de `apps.dashboard`.
+**Motivo:** reforzar arquitectura modular por dominio (analítica operacional dashboard vs reportes formales), reducir acoplamiento y facilitar mantenimiento/pruebas por módulo.
+**Impacto:** `settings.py` agrega `apps.reportes`; `config/urls.py` incluye `apps.reportes.urls`; nuevos tests en `apps/reportes/tests`; endpoints públicos se mantienen sin cambios de ruta para evitar ruptura en frontend.
+
+### Registro 56
+
+**Fecha:** 2026-05-30
+**Decisión:** Aumentar seeders demo para cubrir aproximadamente 6 meses de historial y remover prefijos `CUxx` de la UI de reportes.
+**Motivo:** mejorar representatividad temporal de métricas/reportes y evitar exponer nomenclatura técnica de casos de uso al usuario final.
+**Impacto:** `seed_dashboard_demo` pasa a patrón semanal en ventana de 6 meses; `seed_consultas_demo` incrementa volumen objetivo; `/dashboard/reportes` muestra títulos funcionales sin etiquetas CU.
+
+### Registro 57
+
+**Fecha:** 2026-05-30
+**Decisión:** Incorporar exportación multi-formato en módulo `apps.reportes` con soporte CSV, Excel (`xlsx`) y PDF por cada reporte.
+**Motivo:** necesidad operativa de compartir reportes fuera del sistema en formatos estándar para análisis, archivo e impresión.
+**Impacto:** nuevos endpoints `/api/reportes/*/export` con `file_format=csv|xlsx|pdf`, integración frontend con botones de exportación por bloque, y nuevas dependencias backend (`openpyxl`, `reportlab`).
+
+### Registro 58
+
+**Fecha:** 2026-05-30
+**Decisión:** Crear estilos dedicados para `dashboard/reportes` (`page.module.css`) y retirar nomenclatura `CUxx` de textos frontend.
+**Motivo:** mejorar claridad para usuario final, elevar calidad visual y asegurar comportamiento responsivo consistente sin acoplarse a estilos genéricos del módulo clínico.
+**Impacto:** layout más robusto en móvil/escritorio, controles de export con mejor jerarquía y eliminación total de referencias `CU` en `frontend/src`.
+
+### Registro 59
+
+**Fecha:** 2026-05-30
+**Decisión:** Escalar seeders clínicos/reportes para asegurar volumen consistente de 6 meses en pacientes, citas y consultas.
+**Motivo:** mejorar sentido analítico de reportes y evitar métricas pobres por dataset insuficiente.
+**Impacto:** `seed_clinica` agrega base sintética idempotente (+60), `seed_dashboard_demo` aumenta densidad temporal (cada 3 días en 180 días), y `seed_consultas_demo` sube objetivo a 360 con autogeneración de citas faltantes.
+
 ### Registro 45
 
 **Fecha:** 2026-05-07

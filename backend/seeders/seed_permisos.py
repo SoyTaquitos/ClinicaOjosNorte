@@ -54,8 +54,9 @@ PERMISOS = [
     {'codigo': 'consultas.listar',   'nombre': 'Listar consultas',   'modulo': 'consultas'},
     {'codigo': 'consultas.crear',    'nombre': 'Registrar consulta', 'modulo': 'consultas'},
 
-    # Dashboard
+    # Dashboard / reportes
     {'codigo': 'dashboard.ver',      'nombre': 'Ver dashboard clínico',  'modulo': 'dashboard'},
+    {'codigo': 'reportes.ver',       'nombre': 'Ver reportes clínicos',  'modulo': 'reportes'},
 ]
 
 
