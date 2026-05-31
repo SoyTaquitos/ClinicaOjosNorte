@@ -14,13 +14,13 @@ type PacienteAtendido = {
   primera_atencion: string | null;
   ultima_atencion: string | null;
 };
-type CitaPorEstado = { estado: string; total: number };
+type CitaPorEstado = { fecha: string | null; estado: string; total: number };
 type ConsultaEspecialista = { id_especialista: number; especialista: string; especialidad: string; total_consultas: number };
 type ReportRes<T> = { periodo: { tipo: string; desde: string; hasta: string }; summary: Record<string, number>; items: T[] };
 type SortDir = 'asc' | 'desc';
 
 type PacCols = 'id_paciente' | 'paciente' | 'documento_identidad' | 'total_consultas' | 'primera_atencion' | 'ultima_atencion';
-type CitCols = 'estado' | 'total';
+type CitCols = 'fecha' | 'estado' | 'total';
 type EspCols = 'id_especialista' | 'especialista' | 'especialidad' | 'total_consultas';
 
 type Prefs = {
@@ -34,7 +34,7 @@ const DEFAULT_PREFS: Prefs = {
     q: '', sortBy: 'paciente', dir: 'asc', page: 1, pageSize: 10,
     cols: ['id_paciente', 'paciente', 'documento_identidad', 'total_consultas', 'primera_atencion', 'ultima_atencion'],
   },
-  citas: { q: '', sortBy: 'estado', dir: 'asc', page: 1, pageSize: 10, cols: ['estado', 'total'] },
+  citas: { q: '', sortBy: 'fecha', dir: 'asc', page: 1, pageSize: 10, cols: ['fecha', 'estado', 'total'] },
   especialistas: { q: '', sortBy: 'especialista', dir: 'asc', page: 1, pageSize: 10, cols: ['id_especialista', 'especialista', 'especialidad', 'total_consultas'] },
 };
 
@@ -170,7 +170,7 @@ export default function ReportesPage() {
 
   return (
     <>
-      <div className={styles.pageHeader}><h1 className={styles.title}>Reportes</h1><p className={styles.muted}>Pacientes atendidos, citas por período y consultas por especialista.</p></div>
+      <div className={styles.pageHeader}><h1 className={styles.title}>Reportes</h1><p className={styles.muted}>Pacientes atendidos, citas por período (fecha a fecha) y consultas por médico.</p></div>
       {err && <div className={styles.err}>{err}</div>}
       <div className={styles.toolbar}>
         <div className={styles.field}><label>Desde</label><input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} /></div>
@@ -198,15 +198,15 @@ export default function ReportesPage() {
         <div className={styles.sectionHead}><h3 className={styles.sectionTitle}>Citas por período</h3><div className={styles.actions}><button className={styles.btnGhost} onClick={() => void exportReport('citas-por-periodo', 'csv')}>CSV</button><button className={styles.btnGhost} onClick={() => void exportReport('citas-por-periodo', 'xlsx')}>Excel</button><button className={styles.btnGhost} onClick={() => void exportReport('citas-por-periodo', 'pdf')}>PDF</button></div></div>
         <div className={styles.sectionBody}>
           <p className={styles.summary}>Total filas: {citasFiltered.length}</p>
-          <div className={styles.sectionFilters}><input value={prefs.citas.q} onChange={(e) => setPrefs((p) => ({ ...p, citas: { ...p.citas, q: e.target.value, page: 1 } }))} placeholder="Buscar estado o total..." /><select value={prefs.citas.sortBy} onChange={(e) => setPrefs((p) => ({ ...p, citas: { ...p.citas, sortBy: e.target.value as keyof CitaPorEstado } }))}><option value="estado">Estado</option><option value="total">Total</option></select><select value={prefs.citas.dir} onChange={(e) => setPrefs((p) => ({ ...p, citas: { ...p.citas, dir: e.target.value as SortDir } }))}><option value="asc">Ascendente</option><option value="desc">Descendente</option></select><select value={prefs.citas.pageSize} onChange={(e) => setPrefs((p) => ({ ...p, citas: { ...p.citas, pageSize: Number(e.target.value), page: 1 } }))}>{PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n} por página</option>)}</select></div>
-          <details className={styles.columnsBox}><summary>Columnas visibles</summary><div className={styles.columnsGrid}>{(['estado', 'total'] as CitCols[]).map((col) => (<label key={col}><input type="checkbox" checked={prefs.citas.cols.includes(col)} onChange={() => setPrefs((p) => ({ ...p, citas: { ...p.citas, cols: p.citas.cols.includes(col) ? p.citas.cols.filter((c) => c !== col) : [...p.citas.cols, col] } }))} /> {col}</label>))}</div></details>
-          <div className={styles.tableWrap}><table className={styles.table}><thead><tr>{prefs.citas.cols.includes('estado') && <th>Estado</th>}{prefs.citas.cols.includes('total') && <th>Total</th>}</tr></thead><tbody>{citasView.map((item) => (<tr key={item.estado}>{prefs.citas.cols.includes('estado') && <td>{item.estado}</td>}{prefs.citas.cols.includes('total') && <td>{item.total}</td>}</tr>))}</tbody></table></div>
+          <div className={styles.sectionFilters}><input value={prefs.citas.q} onChange={(e) => setPrefs((p) => ({ ...p, citas: { ...p.citas, q: e.target.value, page: 1 } }))} placeholder="Buscar fecha, estado o total..." /><select value={prefs.citas.sortBy} onChange={(e) => setPrefs((p) => ({ ...p, citas: { ...p.citas, sortBy: e.target.value as keyof CitaPorEstado } }))}><option value="fecha">Fecha</option><option value="estado">Estado</option><option value="total">Total</option></select><select value={prefs.citas.dir} onChange={(e) => setPrefs((p) => ({ ...p, citas: { ...p.citas, dir: e.target.value as SortDir } }))}><option value="asc">Ascendente</option><option value="desc">Descendente</option></select><select value={prefs.citas.pageSize} onChange={(e) => setPrefs((p) => ({ ...p, citas: { ...p.citas, pageSize: Number(e.target.value), page: 1 } }))}>{PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n} por página</option>)}</select></div>
+          <details className={styles.columnsBox}><summary>Columnas visibles</summary><div className={styles.columnsGrid}>{(['fecha', 'estado', 'total'] as CitCols[]).map((col) => (<label key={col}><input type="checkbox" checked={prefs.citas.cols.includes(col)} onChange={() => setPrefs((p) => ({ ...p, citas: { ...p.citas, cols: p.citas.cols.includes(col) ? p.citas.cols.filter((c) => c !== col) : [...p.citas.cols, col] } }))} /> {col}</label>))}</div></details>
+          <div className={styles.tableWrap}><table className={styles.table}><thead><tr>{prefs.citas.cols.includes('fecha') && <th>Fecha</th>}{prefs.citas.cols.includes('estado') && <th>Estado</th>}{prefs.citas.cols.includes('total') && <th>Total</th>}</tr></thead><tbody>{citasView.map((item, idx) => (<tr key={`${item.fecha ?? 'sf'}-${item.estado}-${idx}`}>{prefs.citas.cols.includes('fecha') && <td>{item.fecha ?? '—'}</td>}{prefs.citas.cols.includes('estado') && <td>{item.estado}</td>}{prefs.citas.cols.includes('total') && <td>{item.total}</td>}</tr>))}</tbody></table></div>
           <div className={styles.pagination}><button className={styles.btnGhost} disabled={prefs.citas.page <= 1} onClick={() => setPrefs((p) => ({ ...p, citas: { ...p.citas, page: p.citas.page - 1 } }))}>Anterior</button><span>Página {prefs.citas.page} de {Math.max(1, Math.ceil(citasFiltered.length / prefs.citas.pageSize))}</span><button className={styles.btnGhost} disabled={prefs.citas.page >= Math.max(1, Math.ceil(citasFiltered.length / prefs.citas.pageSize))} onClick={() => setPrefs((p) => ({ ...p, citas: { ...p.citas, page: p.citas.page + 1 } }))}>Siguiente</button></div>
         </div>
       </section>
 
       <section className={styles.sectionCard}>
-        <div className={styles.sectionHead}><h3 className={styles.sectionTitle}>Consultas por especialista</h3><div className={styles.actions}><button className={styles.btnGhost} onClick={() => void exportReport('consultas-por-especialista', 'csv')}>CSV</button><button className={styles.btnGhost} onClick={() => void exportReport('consultas-por-especialista', 'xlsx')}>Excel</button><button className={styles.btnGhost} onClick={() => void exportReport('consultas-por-especialista', 'pdf')}>PDF</button></div></div>
+        <div className={styles.sectionHead}><h3 className={styles.sectionTitle}>Consultas por médico</h3><div className={styles.actions}><button className={styles.btnGhost} onClick={() => void exportReport('consultas-por-especialista', 'csv')}>CSV</button><button className={styles.btnGhost} onClick={() => void exportReport('consultas-por-especialista', 'xlsx')}>Excel</button><button className={styles.btnGhost} onClick={() => void exportReport('consultas-por-especialista', 'pdf')}>PDF</button></div></div>
         <div className={styles.sectionBody}>
           <p className={styles.summary}>Total filas: {especialistasFiltered.length}</p>
           <div className={styles.sectionFilters}><input value={prefs.especialistas.q} onChange={(e) => setPrefs((p) => ({ ...p, especialistas: { ...p.especialistas, q: e.target.value, page: 1 } }))} placeholder="Buscar especialista/especialidad..." /><select value={prefs.especialistas.sortBy} onChange={(e) => setPrefs((p) => ({ ...p, especialistas: { ...p.especialistas, sortBy: e.target.value as keyof ConsultaEspecialista } }))}><option value="especialista">Especialista</option><option value="especialidad">Especialidad</option><option value="total_consultas">Total consultas</option><option value="id_especialista">ID especialista</option></select><select value={prefs.especialistas.dir} onChange={(e) => setPrefs((p) => ({ ...p, especialistas: { ...p.especialistas, dir: e.target.value as SortDir } }))}><option value="asc">Ascendente</option><option value="desc">Descendente</option></select><select value={prefs.especialistas.pageSize} onChange={(e) => setPrefs((p) => ({ ...p, especialistas: { ...p.especialistas, pageSize: Number(e.target.value), page: 1 } }))}>{PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n} por página</option>)}</select></div>

@@ -29,6 +29,15 @@ Important:
 - `code-review`: read-only risk and quality review.
 - `qa-testing`: validation strategy, tests, lint/build/regression checks.
 - `devops`: Docker/Compose/env/deploy/runtime operations specialist.
+- `security`: JWT/RBAC/CORS/secrets/hardening specialist.
+- `docs-memory`: updates continuity docs in `docs/ai`.
+- `puds`: process artifacts and traceability specialist.
+- `diagrams-modeling`: UML/C4/PlantUML/draw.io/EA modeling specialist.
+
+Not created (no evidence currently):
+- `mobile`
+- `ai-inference`
+- `ai-researcher`
 
 ## Orchestration Flow
 
@@ -40,6 +49,7 @@ Important:
 ## Skills
 
 - Project-local skills under `.opencode/skills/`: see `.opencode/skills/README.md`.
+- Diagram/modeling skill available: `.opencode/skills/uml-c4-puds-diagrams/SKILL.md`.
 - If a needed capability is missing, use `find-skills` to discover reusable skills.
 
 ## Validation Commands

@@ -32,14 +32,17 @@ def _completar_citas_para_consultas(registrador, faltantes):
 
     creados = 0
     existentes = 0
-    base = timezone.localtime(timezone.now()).replace(hour=8, minute=0, second=0, microsecond=0)
+    base = timezone.localtime(timezone.now()).replace(hour=7, minute=30, second=0, microsecond=0)
+    minute_pattern = [0, 10, 20, 30, 40, 50]
+    hour_pattern = [7, 8, 9, 10, 11, 14, 15, 16, 17]
 
     for i in range(faltantes):
         paciente = pacientes[i % len(pacientes)]
         especialista = especialistas[i % len(especialistas)]
-        day_offset = -(i % 180)
-        hour_offset = (i // 180) % 8
-        start = base + timedelta(days=day_offset, hours=hour_offset)
+        day_offset = -((i * 5 + (i // 17)) % 180)
+        hour = hour_pattern[(i + especialista.id_especialista) % len(hour_pattern)]
+        minute = minute_pattern[(i + paciente.id_paciente) % len(minute_pattern)]
+        start = (base + timedelta(days=day_offset)).replace(hour=hour, minute=minute)
         end = start + timedelta(minutes=30)
 
         cita, created = Cita.objects.get_or_create(
@@ -81,7 +84,9 @@ def _asegurar_consultas_minimas_por_especialista(registrador):
 
     creados = 0
     existentes = 0
-    ahora = timezone.localtime(timezone.now()).replace(hour=8, minute=0, second=0, microsecond=0)
+    ahora = timezone.localtime(timezone.now()).replace(hour=7, minute=30, second=0, microsecond=0)
+    minute_pattern = [0, 10, 20, 30, 40, 50]
+    hour_pattern = [7, 8, 9, 10, 11, 14, 15, 16, 17]
 
     for idx_especialista, especialista in enumerate(especialistas):
         actual = ConsultaMedica.objects.filter(id_especialista=especialista).count()
@@ -91,9 +96,11 @@ def _asegurar_consultas_minimas_por_especialista(registrador):
 
         for i in range(faltantes):
             paciente = pacientes[(idx_especialista + i) % len(pacientes)]
-            day_offset = -((idx_especialista * MIN_CONSULTAS_POR_ESPECIALISTA + i) % 180)
-            hour_offset = (i % 8)
-            start = ahora + timedelta(days=day_offset, hours=hour_offset)
+            serial = idx_especialista * MIN_CONSULTAS_POR_ESPECIALISTA + i
+            day_offset = -((serial * 3 + idx_especialista) % 180)
+            hour = hour_pattern[(serial + idx_especialista) % len(hour_pattern)]
+            minute = minute_pattern[(serial + paciente.id_paciente) % len(minute_pattern)]
+            start = (ahora + timedelta(days=day_offset)).replace(hour=hour, minute=minute)
             end = start + timedelta(minutes=30)
 
             cita, cita_created = Cita.objects.get_or_create(
@@ -126,6 +133,12 @@ def _asegurar_consultas_minimas_por_especialista(registrador):
             )
 
             if consulta_created:
+                offset_min = (paciente.id_paciente * 3 + especialista.id_especialista) % 17
+                consulta_ts = cita.fecha_hora_inicio + timedelta(minutes=12 + offset_min)
+                ConsultaMedica.objects.filter(pk=consulta.pk).update(
+                    fecha_creacion=consulta_ts,
+                    fecha_actualizacion=consulta_ts,
+                )
                 creados += 1
             else:
                 existentes += 1
@@ -223,5 +236,12 @@ def run():
             cita.save(update_fields=['estado', 'fecha_hora_fin', 'fecha_actualizacion'])
         else:
             existentes += 1
+
+        offset_min = (cita.id_paciente.id_paciente * 3 + cita.id_especialista.id_especialista) % 17
+        consulta_ts = cita.fecha_hora_inicio + timedelta(minutes=12 + offset_min)
+        ConsultaMedica.objects.filter(pk=consulta.pk).update(
+            fecha_creacion=consulta_ts,
+            fecha_actualizacion=consulta_ts,
+        )
 
     return creados, existentes

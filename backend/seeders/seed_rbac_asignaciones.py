@@ -20,6 +20,7 @@ ROLE_PERMISSION_CODES = {
         'permisos.listar', 'permisos.crear', 'permisos.editar',
         'pacientes.listar', 'pacientes.crear', 'pacientes.editar', 'pacientes.eliminar',
         'especialistas.listar', 'especialistas.crear', 'especialistas.editar', 'especialistas.eliminar',
+        'medicos.listar', 'medicos.crear', 'medicos.editar', 'medicos.eliminar',
         'citas.listar', 'citas.crear', 'citas.reprogramar', 'citas.cancelar',
         'agenda.ver',
         'consultas.listar', 'consultas.crear',
@@ -44,6 +45,7 @@ ROLE_PERMISSION_CODES = {
     'Recepción Clínica': [
         'pacientes.listar', 'pacientes.crear', 'pacientes.editar', 'pacientes.eliminar',
         'especialistas.listar',
+        'medicos.listar',
         'citas.listar', 'citas.crear', 'citas.reprogramar',
         'agenda.ver',
         'dashboard.ver',
@@ -52,6 +54,7 @@ ROLE_PERMISSION_CODES = {
     'Médico Clínico': [
         'pacientes.listar',
         'especialistas.listar',
+        'medicos.listar',
         'citas.listar',
         'agenda.ver',
         'consultas.listar', 'consultas.crear',
@@ -60,6 +63,7 @@ ROLE_PERMISSION_CODES = {
     'Especialista Clínico': [
         'pacientes.listar',
         'especialistas.listar',
+        'medicos.listar',
         'citas.listar',
         'agenda.ver',
         'consultas.listar', 'consultas.crear',

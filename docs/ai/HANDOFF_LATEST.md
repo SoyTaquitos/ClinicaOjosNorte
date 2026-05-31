@@ -5,7 +5,43 @@
 ## Fecha
 2026-05-30
 
+## Actualización rápida
+1. **OpenCode multi-agente consolidado:** se estandariza operación en `.opencode/agents/` y se elimina dependencia de formato Cursor para evitar doble mantenimiento.
+2. **Subagentes OpenCode activos:** backend, frontend, ui-ux, architecture, architect-planner, code-review, qa-testing, devops, security, docs-memory, puds, diagrams-modeling.
+3. **Agentes no aplicables (evidencia insuficiente):** mobile, ai-inference y ai-researcher.
+4. **Skills para diagramas en OpenCode:** se agrega `.opencode/skills/uml-c4-puds-diagrams/SKILL.md` y se actualiza índice de skills.
+5. **Validación estructural:** `.opencode/agents/` mantiene `orchestrator` en `mode: primary` y subagentes en `mode: subagent`.
+
 ## Resumen
+1. **Automatización de arranque backend en Docker:** al iniciar contenedor se ejecuta `python manage.py migrate --noinput` y luego `python manage.py seed`.
+2. **Control por entorno:** nuevos flags `AUTO_MIGRATE` y `AUTO_SEED` en `docker-compose.yml` (default `true`).
+3. **Validación en logs:** se confirmó en arranque que corre migraciones, seed idempotente y luego levanta `runserver`.
+
+## Resumen previo (sigue valido)
+1. **UX formularios clínicos reforzada:** en especialistas, médicos y consultas se consolidó interacción basada en formulario (submit, validación y feedback).
+2. **Gestión editable en especialistas:** se agrega modal de edición para datos del especialista y para bloques de horario.
+3. **Gestión editable en médicos:** se agrega modal de edición desde tabla para matrícula, especialidad y experiencia.
+4. **Registro de consultas más guiado:** validación explícita de cita/diagnóstico/plan y deshabilitado del CTA hasta cumplir mínimos.
+5. **Validación técnica:** `npm run lint` frontend en verde tras cambios.
+
+## Resumen previo (sigue valido)
+1. **Se implementa módulo Médicos completo:** app backend `apps.medicos` + ruta frontend `/dashboard/medicos`.
+2. **Atributos propios del médico:** matrícula, especialidad principal, subespecialidad, años de experiencia y estado activo.
+3. **RBAC y seeders actualizados:** nuevos permisos `medicos.*`, asignaciones por rol y seed clínico crea perfiles médicos demo.
+4. **Sidebar actualizado:** sección Gestión clínica ahora muestra `Médicos` con control RBAC por ruta.
+5. **Fix botones frontend:** en `especialistas` y `medicos` se eliminaron retornos silenciosos; ahora hay validación y mensajes explícitos.
+6. **Validación técnica:** `migrate` OK, `seed permisos/rbac/clinica` OK, `manage.py check` OK, `npm run lint` OK.
+
+## Resumen previo (sigue valido)
+1. **Fix de funcionalidad percibida en `/dashboard/especialistas`:** se elimina comportamiento silencioso en botones de creación.
+2. **Validaciones frontend agregadas:**
+   - Crear especialista requiere `usuario`, `especialidad`, `registro_profesional`.
+   - Crear horario requiere `especialista`, `hora_inicio`, `hora_fin`.
+3. **Botones deshabilitados por validez:** los CTAs ahora se deshabilitan hasta completar datos mínimos.
+4. **Feedback claro al usuario:** mensajes de error cuando faltan campos (en vez de no hacer nada).
+5. **Validación técnica:** `npm run lint` frontend en verde.
+
+## Resumen previo (sigue valido)
 1. **Sidebar frontend reorganizado por paquetes funcionales:** secciones visuales alineadas a CU (`Reportes y estadísticas`, `Usuarios`, `Gestión clínica`, `Historial clínico`, `Bitácora`).
 2. **RBAC preservado:** cada ítem se sigue filtrando por `canViewRoute`, por lo que el agrupado no expone rutas no permitidas.
 3. **Historial clínico visible como roadmap:** sección con nota `Próximamente` sin rutas activas aún.

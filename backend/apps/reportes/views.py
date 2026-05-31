@@ -3,6 +3,7 @@ from datetime import datetime, time, timedelta
 from io import BytesIO
 
 from django.db.models import Count, Max, Min
+from django.db.models.functions import TruncDate
 from django.http import HttpResponse
 from django.utils import timezone
 from openpyxl import Workbook
@@ -131,13 +132,21 @@ def _build_citas_por_periodo(start_dt, end_dt, estado=None, especialista_id=None
         citas = citas.filter(id_especialista_id=especialista_id)
 
     agrupado = (
-        citas.values('estado')
+        citas.annotate(fecha=TruncDate('fecha_hora_inicio'))
+        .values('fecha', 'estado')
         .annotate(total=Count('id_cita'))
-        .order_by('estado')
+        .order_by('fecha', 'estado')
     )
-    items = list(agrupado)
-    items = _filter_items(items, search, ['estado', 'total'])
-    items = _sort_items(items, sort_by, sort_dir, ['estado', 'total'])
+    items = [
+        {
+            'fecha': row['fecha'].isoformat() if row.get('fecha') else None,
+            'estado': row['estado'],
+            'total': row['total'],
+        }
+        for row in agrupado
+    ]
+    items = _filter_items(items, search, ['fecha', 'estado', 'total'])
+    items = _sort_items(items, sort_by, sort_dir, ['fecha', 'estado', 'total'])
 
     return {
         'summary': {
@@ -362,7 +371,7 @@ def reporte_citas_por_periodo_export(request):
         request.query_params.get('sort_by'),
         request.query_params.get('sort_dir', 'asc'),
     )
-    columns = [('estado', 'Estado'), ('total', 'Total')]
+    columns = [('fecha', 'Fecha'), ('estado', 'Estado'), ('total', 'Total')]
     return _export_response(request, 'reporte-citas-por-periodo', 'Citas por periodo', columns, body['items'])
 
 
@@ -381,8 +390,8 @@ def reporte_consultas_por_especialista_export(request):
         request.query_params.get('sort_dir', 'asc'),
     )
     columns = [
-        ('id_especialista', 'ID especialista'),
-        ('especialista', 'Especialista'),
+        ('id_especialista', 'ID medico/especialista'),
+        ('especialista', 'Medico'),
         ('especialidad', 'Especialidad'),
         ('total_consultas', 'Total consultas'),
     ]

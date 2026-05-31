@@ -29,6 +29,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      AUTO_MIGRATE: ${AUTO_MIGRATE:-true}
+      AUTO_SEED: ${AUTO_SEED:-true}
     volumes:
       - ./backend:/app
       - backend_static:/app/staticfiles

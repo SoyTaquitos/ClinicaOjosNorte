@@ -31,6 +31,7 @@ api_patterns = [
     # Dominio clínico
     path('', include('apps.pacientes.urls')),
     path('', include('apps.especialistas.urls')),
+    path('', include('apps.medicos.urls')),
     path('', include('apps.citas.urls')),
     path('', include('apps.consultas.urls')),
     path('', include('apps.dashboard.urls')),

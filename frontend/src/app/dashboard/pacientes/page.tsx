@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/lib/api';
 import { useDashboardUser } from '@/contexts/DashboardUserContext';
 import { canViewClinicalModule, canWriteModule } from '@/lib/authorization';
@@ -96,6 +96,7 @@ export default function PacientesPage() {
   const [formErr, setFormErr] = useState<string | null>(null);
   const [fieldErr, setFieldErr] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const firstFieldRef = useRef<HTMLInputElement | null>(null);
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -137,6 +138,20 @@ export default function PacientesPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!modal) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeModal();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [modal]);
+
+  useEffect(() => {
+    if (!modal) return;
+    firstFieldRef.current?.focus();
+  }, [modal]);
 
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
   const activos = rows.filter((r) => r.activo).length;
@@ -457,15 +472,32 @@ export default function PacientesPage() {
       </div>
 
       {modal && (
-        <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-label="Formulario de paciente">
-          <div className={styles.modalPanel}>
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onClick={closeModal}
+        >
+          <div
+            className={styles.modalPanel}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Formulario de paciente"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 className={styles.modalTitle}>{modal === 'create' ? 'Nuevo paciente' : 'Editar paciente'}</h2>
             {formErr && <div className={styles.error}>{formErr}</div>}
 
-            <div className={styles.grid2}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit();
+              }}
+            >
+              <div className={styles.grid2}>
               <div className={styles.field}>
                 <label className={styles.label} htmlFor="nombres">Nombres</label>
                 <input
+                  ref={firstFieldRef}
                   id="nombres"
                   className={styles.input}
                   value={form.nombres}
@@ -559,27 +591,28 @@ export default function PacientesPage() {
                 </select>
                 {fieldErr.activo && <span className={styles.fieldErr}>{fieldErr.activo}</span>}
               </div>
-            </div>
+              </div>
 
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="direccion">Dirección</label>
-              <textarea
-                id="direccion"
-                className={styles.textarea}
-                value={form.direccion}
-                onChange={(e) => setForm((prev) => ({ ...prev, direccion: e.target.value }))}
-              />
-              {fieldErr.direccion && <span className={styles.fieldErr}>{fieldErr.direccion}</span>}
-            </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="direccion">Dirección</label>
+                <textarea
+                  id="direccion"
+                  className={styles.textarea}
+                  value={form.direccion}
+                  onChange={(e) => setForm((prev) => ({ ...prev, direccion: e.target.value }))}
+                />
+                {fieldErr.direccion && <span className={styles.fieldErr}>{fieldErr.direccion}</span>}
+              </div>
 
-            <div className={styles.modalActions}>
-              <button type="button" className={styles.btnGhost} onClick={closeModal} disabled={saving}>
-                Cancelar
-              </button>
-              <button type="button" className={styles.btnPrimary} onClick={submit} disabled={saving}>
-                {saving ? 'Guardando...' : modal === 'create' ? 'Crear paciente' : 'Guardar cambios'}
-              </button>
-            </div>
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.btnGhost} onClick={closeModal} disabled={saving}>
+                  Cancelar
+                </button>
+                <button type="submit" className={styles.btnPrimary} disabled={saving}>
+                  {saving ? 'Guardando...' : modal === 'create' ? 'Crear paciente' : 'Guardar cambios'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

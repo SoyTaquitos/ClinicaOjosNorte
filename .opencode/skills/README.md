@@ -1,6 +1,8 @@
 # Skills Registry (Project-Local)
 
-Current project-local skills: none.
+Current project-local skills:
+
+- `uml-c4-puds-diagrams` -> `.opencode/skills/uml-c4-puds-diagrams/SKILL.md`
 
 ## Usage Guidance
 

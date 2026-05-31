@@ -65,6 +65,7 @@ LOCAL_APPS = [
     'apps.bitacora',  # Registro de auditoría del sistema
     'apps.pacientes',
     'apps.especialistas',
+    'apps.medicos',
     'apps.citas',
     'apps.consultas',
     'apps.dashboard',
