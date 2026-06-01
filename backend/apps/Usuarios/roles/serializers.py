@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.permisos.serializers import PermisoSerializer
+from apps.Usuarios.permisos.serializers import PermisoSerializer
 
 from .models import Rol, RolPermiso, UsuarioRol
 
@@ -20,7 +20,7 @@ class RolSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_rol']
 
     def get_permisos(self, obj):
-        from apps.permisos.models import Permiso
+        from apps.Usuarios.permisos.models import Permiso
         permisos = Permiso.objects.filter(rol_permisos__id_rol=obj)
         return PermisoSerializer(permisos, many=True).data
 

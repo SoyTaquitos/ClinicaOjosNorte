@@ -6,7 +6,7 @@ Idempotente: usa get_or_create.
 Convención: '<modulo>.<accion>'
 Módulos vigentes: users, bitacora, roles, permisos, pacientes, especialistas, medicos, citas, consultas, agenda, dashboard
 """
-from apps.permisos.models import Permiso
+from apps.Usuarios.permisos.models import Permiso
 
 
 PERMISOS = [

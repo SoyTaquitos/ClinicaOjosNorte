@@ -3,7 +3,7 @@ seeders/seed_roles.py
 Pobla la tabla roles con los roles base del sistema.
 Idempotente: usa get_or_create.
 """
-from apps.roles.models import Rol
+from apps.Usuarios.roles.models import Rol
 
 
 ROLES_BASE = [

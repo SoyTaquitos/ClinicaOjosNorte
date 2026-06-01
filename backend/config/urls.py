@@ -14,28 +14,28 @@ api_patterns = [
     path('', include('apps.core.urls')),
 
     # Autenticación y sesión (login, logout, /auth/me, JWT, reset password, security/login-config)
-    path('', include('apps.auth.urls')),
+    path('', include('apps.Usuarios.auth.urls')),
 
     # Usuarios (CRUD /api/users/)
-    path('', include('apps.users.urls')),
+    path('', include('apps.Usuarios.users.urls')),
 
     # Roles y asignaciones usuario-rol
     path('', include('apps.Usuarios.roles.urls')),
 
     # Permisos granulares
-    path('', include('apps.permisos.urls')),
+    path('', include('apps.Usuarios.permisos.urls')),
 
     # Bitácora (app separada — solo lectura via API)
     path('', include('apps.bitacora.urls')),
 
     # Dominio clínico
-    path('', include('apps.pacientes.urls')),
-    path('', include('apps.especialistas.urls')),
-    path('', include('apps.medicos.urls')),
-    path('', include('apps.citas.urls')),
-    path('', include('apps.consultas.urls')),
-    path('', include('apps.dashboard.urls')),
-    path('', include('apps.reportes.urls')),
+    path('', include('apps.GestionClinica.pacientes.urls')),
+    path('', include('apps.GestionClinica.especialistas.urls')),
+    path('', include('apps.GestionClinica.medicos.urls')),
+    path('', include('apps.GestionClinica.citas.urls')),
+    path('', include('apps.GestionClinica.consultas.urls')),
+    path('', include('apps.ReportesEstadisticas.dashboard.urls')),
+    path('', include('apps.ReportesEstadisticas.reportes.urls')),
 ]
 
 urlpatterns = [

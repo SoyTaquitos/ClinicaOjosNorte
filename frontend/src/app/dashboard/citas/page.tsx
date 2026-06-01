@@ -191,23 +191,37 @@ export default function CitasPage() {
     setLoading(true);
     setErr(null);
     try {
-      const [p, e, c, h] = await Promise.all([
-        api.get<PageRes<PacienteRow>>('/api/pacientes?page=1&page_size=500&ordering=apellidos'),
-        api.get<PageRes<EspecialistaRow>>('/api/especialistas?page=1'),
-        api.get<PageRes<CitaRow>>('/api/citas?page=1'),
-        api.get<PageRes<HorarioRow>>('/api/horarios-especialista?page=1&page_size=500'),
-      ]);
-      const uniquePacientes = Array.from(
-        new Map((p.data.results ?? []).map((item) => [item.id_paciente, item])).values(),
-      );
-      setPacientes(uniquePacientes);
-      setEspecialistas(e.data.results ?? []);
-      setRows(c.data.results ?? []);
-      setHorarios((h.data.results ?? []).filter((x) => x.activo));
+      if (!canCreateCitas) {
+        const [pRes, cRes] = await Promise.all([
+          api.get<PageRes<PacienteRow>>('/api/pacientes?page=1&page_size=500&ordering=apellidos'),
+          api.get<PageRes<CitaRow>>('/api/citas?page=1'),
+        ]);
+        const uniquePacientes = Array.from(
+          new Map((pRes.data.results ?? []).map((item) => [item.id_paciente, item])).values(),
+        );
+        setPacientes(uniquePacientes);
+        setRows(cRes.data.results ?? []);
+        setEspecialistas([]);
+        setHorarios([]);
+      } else {
+        const [p, e, c, h] = await Promise.all([
+          api.get<PageRes<PacienteRow>>('/api/pacientes?page=1&page_size=500&ordering=apellidos'),
+          api.get<PageRes<EspecialistaRow>>('/api/especialistas?page=1'),
+          api.get<PageRes<CitaRow>>('/api/citas?page=1'),
+          api.get<PageRes<HorarioRow>>('/api/horarios-especialista?page=1&page_size=500'),
+        ]);
+        const uniquePacientes = Array.from(
+          new Map((p.data.results ?? []).map((item) => [item.id_paciente, item])).values(),
+        );
+        setPacientes(uniquePacientes);
+        setEspecialistas(e.data.results ?? []);
+        setRows(c.data.results ?? []);
+        setHorarios((h.data.results ?? []).filter((x) => x.activo));
+      }
     } catch (error) {
       setErr(apiErr(error));
     } finally { setLoading(false); }
-  }, [canViewCitas]);
+  }, [canViewCitas, canCreateCitas]);
 
   useEffect(() => { load(); }, [load]);
 

@@ -18,16 +18,12 @@ interface MedicoRow {
   id_usuario: number;
   nombre_usuario: string;
   matricula: string;
-  especialidad_principal: string;
-  subespecialidad: string | null;
   anios_experiencia: number;
   activo: boolean;
 }
 
 interface MedicoEditForm {
   matricula: string;
-  especialidad_principal: string;
-  subespecialidad: string;
   anios_experiencia: string;
   activo: boolean;
 }
@@ -62,8 +58,6 @@ export default function MedicosPage() {
   const [form, setForm] = useState({
     id_usuario: "",
     matricula: "",
-    especialidad_principal: "",
-    subespecialidad: "",
     anios_experiencia: "0",
     activo: true,
   });
@@ -72,8 +66,6 @@ export default function MedicosPage() {
   const [editing, setEditing] = useState<MedicoRow | null>(null);
   const [editForm, setEditForm] = useState<MedicoEditForm>({
     matricula: "",
-    especialidad_principal: "",
-    subespecialidad: "",
     anios_experiencia: "0",
     activo: true,
   });
@@ -98,8 +90,7 @@ export default function MedicosPage() {
 
   const canSubmit =
     !!form.id_usuario &&
-    form.matricula.trim().length > 0 &&
-    form.especialidad_principal.trim().length > 0;
+    form.matricula.trim().length > 0;
 
   const load = useCallback(async () => {
     if (!canView) {
@@ -133,7 +124,6 @@ export default function MedicosPage() {
     if (!canManage) return setErr("No tienes permiso para crear médicos.");
     if (!form.id_usuario) return setErr("Selecciona un usuario.");
     if (!form.matricula.trim()) return setErr("Ingresa la matrícula.");
-    if (!form.especialidad_principal.trim()) return setErr("Ingresa la especialidad principal.");
     setSaving(true);
     setErr(null);
     setOk(null);
@@ -141,14 +131,12 @@ export default function MedicosPage() {
       await api.post("/api/medicos", {
         id_usuario: Number(form.id_usuario),
         matricula: form.matricula.trim(),
-        especialidad_principal: form.especialidad_principal.trim(),
-        subespecialidad: form.subespecialidad.trim() || null,
         anios_experiencia: Number(form.anios_experiencia || "0"),
         activo: form.activo,
       });
       setOk("Médico creado.");
       setIsCreateOpen(false);
-      setForm({ id_usuario: "", matricula: "", especialidad_principal: "", subespecialidad: "", anios_experiencia: "0", activo: true });
+      setForm({ id_usuario: "", matricula: "", anios_experiencia: "0", activo: true });
       await load();
     } catch (error) {
       setErr(apiErr(error));
@@ -163,8 +151,6 @@ export default function MedicosPage() {
     setEditing(row);
     setEditForm({
       matricula: row.matricula,
-      especialidad_principal: row.especialidad_principal,
-      subespecialidad: row.subespecialidad || "",
       anios_experiencia: String(row.anios_experiencia),
       activo: row.activo,
     });
@@ -180,17 +166,11 @@ export default function MedicosPage() {
       setErr("La matrícula es obligatoria.");
       return;
     }
-    if (!editForm.especialidad_principal.trim()) {
-      setErr("La especialidad principal es obligatoria.");
-      return;
-    }
     setSavingEdit(true);
     setErr(null);
     try {
       await api.patch(`/api/medicos/${editing.id_medico}`, {
         matricula: editForm.matricula.trim(),
-        especialidad_principal: editForm.especialidad_principal.trim(),
-        subespecialidad: editForm.subespecialidad.trim() || null,
         anios_experiencia: Number(editForm.anios_experiencia || "0"),
         activo: editForm.activo,
       });
@@ -260,18 +240,16 @@ export default function MedicosPage() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>ID</th><th>Usuario</th><th>Matrícula</th><th>Especialidad</th><th>Subespecialidad</th><th>Experiencia</th><th>Estado</th><th>Acciones</th>
+              <th>ID</th><th>Usuario</th><th>Matrícula</th><th>Experiencia</th><th>Estado</th><th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={8}>Cargando...</td></tr>}
+            {loading && <tr><td colSpan={6}>Cargando...</td></tr>}
             {!loading && rows.map((r) => (
               <tr key={r.id_medico}>
                 <td>{r.id_medico}</td>
                 <td>{r.nombre_usuario || r.id_usuario}</td>
                 <td>{r.matricula}</td>
-                <td>{r.especialidad_principal}</td>
-                <td>{r.subespecialidad || "—"}</td>
                 <td>{r.anios_experiencia} años</td>
                 <td><span className={`${styles.badge} ${r.activo ? styles.badgeActive : styles.badgeInactive}`}>{r.activo ? "Activo" : "Inactivo"}</span></td>
                 <td>
@@ -305,14 +283,6 @@ export default function MedicosPage() {
               <div className={styles.field}>
                 <label htmlFor="edit-mat">Matrícula</label>
                 <input id="edit-mat" value={editForm.matricula} onChange={(e) => setEditForm((p) => ({ ...p, matricula: e.target.value }))} />
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="edit-esp">Especialidad principal</label>
-                <input id="edit-esp" value={editForm.especialidad_principal} onChange={(e) => setEditForm((p) => ({ ...p, especialidad_principal: e.target.value }))} />
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="edit-sub">Subespecialidad</label>
-                <input id="edit-sub" value={editForm.subespecialidad} onChange={(e) => setEditForm((p) => ({ ...p, subespecialidad: e.target.value }))} />
               </div>
               <div className={styles.field}>
                 <label htmlFor="edit-exp">Años experiencia</label>
@@ -362,14 +332,6 @@ export default function MedicosPage() {
                 <div className={styles.field}>
                   <label htmlFor="mat">Matrícula</label>
                   <input id="mat" value={form.matricula} onChange={(e) => setForm((p) => ({ ...p, matricula: e.target.value }))} />
-                </div>
-                <div className={styles.field}>
-                  <label htmlFor="esp">Especialidad principal</label>
-                  <input id="esp" value={form.especialidad_principal} onChange={(e) => setForm((p) => ({ ...p, especialidad_principal: e.target.value }))} />
-                </div>
-                <div className={styles.field}>
-                  <label htmlFor="sub">Subespecialidad</label>
-                  <input id="sub" value={form.subespecialidad} onChange={(e) => setForm((p) => ({ ...p, subespecialidad: e.target.value }))} />
                 </div>
                 <div className={styles.field}>
                   <label htmlFor="exp">Años experiencia</label>

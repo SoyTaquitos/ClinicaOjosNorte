@@ -15,11 +15,11 @@ from datetime import datetime, time, timedelta
 from django.db import transaction
 from django.utils import timezone
 
-from apps.citas.models import Cita, EstadoCita, HorarioEspecialista
-from apps.especialistas.models import Especialista
-from apps.medicos.models import Medico
-from apps.pacientes.models import Paciente
-from apps.users.models import EstadoUsuario, TipoUsuario, Usuario
+from apps.GestionClinica.citas.models import Cita, EstadoCita, HorarioEspecialista
+from apps.GestionClinica.especialistas.models import Especialista
+from apps.GestionClinica.medicos.models import Medico
+from apps.GestionClinica.pacientes.models import Paciente
+from apps.Usuarios.users.models import EstadoUsuario, TipoUsuario, Usuario
 
 
 USUARIOS_MEDICOS = [
@@ -256,11 +256,45 @@ def run():
             existentes += 1
         usuarios[data['username']] = user
 
-    # 2) Especialistas
+    # 2) Médicos (usuario MEDICO -> perfil médico)
+    medicos_seed = [
+        {
+            'username': 'dr.carlos',
+            'matricula': 'MED-REG-0001',
+            'anios_experiencia': 12,
+        },
+        {
+            'username': 'dr.luis',
+            'matricula': 'MED-REG-0002',
+            'anios_experiencia': 9,
+        },
+        {
+            'username': 'dr.renzo',
+            'matricula': 'MED-REG-0003',
+            'anios_experiencia': 8,
+        },
+    ]
+
+    medicos_by_username = {}
+
+    for data in medicos_seed:
+        medico, created = Medico.objects.get_or_create(
+            matricula=data['matricula'],
+            defaults={
+                'id_usuario': usuarios[data['username']],
+                'anios_experiencia': data['anios_experiencia'],
+                'activo': True,
+            },
+        )
+        creados += int(created)
+        existentes += int(not created)
+        medicos_by_username[data['username']] = medico
+
+    # 3) Especialistas (médico -> especialista)
     especialista_1, created = Especialista.objects.get_or_create(
         registro_profesional='REG-OFT-0001',
         defaults={
-            'id_usuario': usuarios['dr.carlos'],
+            'id_medico': medicos_by_username['dr.carlos'],
             'especialidad': 'Oftalmologia general',
             'activo': True,
         },
@@ -271,57 +305,7 @@ def run():
     especialista_2, created = Especialista.objects.get_or_create(
         registro_profesional='REG-OFT-0002',
         defaults={
-            'id_usuario': usuarios['dra.andrea'],
-            'especialidad': 'Retina y vitreo',
-            'activo': True,
-        },
-    )
-    creados += int(created)
-    existentes += int(not created)
-
-    # 2.1) Médicos con atributos propios
-    medicos_seed = [
-        {
-            'username': 'dr.carlos',
-            'matricula': 'MED-REG-0001',
-            'especialidad_principal': 'Oftalmología clínica',
-            'subespecialidad': 'Segmento anterior',
-            'anios_experiencia': 12,
-        },
-        {
-            'username': 'dr.luis',
-            'matricula': 'MED-REG-0002',
-            'especialidad_principal': 'Glaucoma',
-            'subespecialidad': 'Manejo quirúrgico',
-            'anios_experiencia': 9,
-        },
-        {
-            'username': 'dr.renzo',
-            'matricula': 'MED-REG-0003',
-            'especialidad_principal': 'Oftalmología pediátrica',
-            'subespecialidad': 'Estrabismo',
-            'anios_experiencia': 8,
-        },
-    ]
-
-    for data in medicos_seed:
-        medico, created = Medico.objects.get_or_create(
-            matricula=data['matricula'],
-            defaults={
-                'id_usuario': usuarios[data['username']],
-                'especialidad_principal': data['especialidad_principal'],
-                'subespecialidad': data['subespecialidad'],
-                'anios_experiencia': data['anios_experiencia'],
-                'activo': True,
-            },
-        )
-        creados += int(created)
-        existentes += int(not created)
-
-    especialista_3, created = Especialista.objects.get_or_create(
-        registro_profesional='REG-OFT-0003',
-        defaults={
-            'id_usuario': usuarios['dr.luis'],
+            'id_medico': medicos_by_username['dr.luis'],
             'especialidad': 'Glaucoma',
             'activo': True,
         },
@@ -329,33 +313,11 @@ def run():
     creados += int(created)
     existentes += int(not created)
 
-    especialista_4, created = Especialista.objects.get_or_create(
-        registro_profesional='REG-OFT-0004',
+    especialista_3, created = Especialista.objects.get_or_create(
+        registro_profesional='REG-OFT-0003',
         defaults={
-            'id_usuario': usuarios['dra.paola'],
-            'especialidad': 'Córnea y superficie ocular',
-            'activo': True,
-        },
-    )
-    creados += int(created)
-    existentes += int(not created)
-
-    especialista_5, created = Especialista.objects.get_or_create(
-        registro_profesional='REG-OFT-0005',
-        defaults={
-            'id_usuario': usuarios['dr.renzo'],
+            'id_medico': medicos_by_username['dr.renzo'],
             'especialidad': 'Oftalmologia pediátrica',
-            'activo': True,
-        },
-    )
-    creados += int(created)
-    existentes += int(not created)
-
-    especialista_6, created = Especialista.objects.get_or_create(
-        registro_profesional='REG-OFT-0006',
-        defaults={
-            'id_usuario': usuarios['dra.sofia'],
-            'especialidad': 'Neuro-oftalmología',
             'activo': True,
         },
     )
@@ -476,9 +438,9 @@ def run():
         {'id_especialista': especialista_1, 'dia_semana': 2, 'hora_inicio': time(14, 0), 'hora_fin': time(18, 0), 'duracion_slot_min': 30},
         {'id_especialista': especialista_2, 'dia_semana': 1, 'hora_inicio': time(9, 0), 'hora_fin': time(13, 0), 'duracion_slot_min': 30},
         {'id_especialista': especialista_3, 'dia_semana': 3, 'hora_inicio': time(8, 30), 'hora_fin': time(12, 30), 'duracion_slot_min': 30},
-        {'id_especialista': especialista_4, 'dia_semana': 4, 'hora_inicio': time(14, 0), 'hora_fin': time(18, 0), 'duracion_slot_min': 30},
-        {'id_especialista': especialista_5, 'dia_semana': 0, 'hora_inicio': time(13, 0), 'hora_fin': time(17, 0), 'duracion_slot_min': 30},
-        {'id_especialista': especialista_6, 'dia_semana': 2, 'hora_inicio': time(9, 0), 'hora_fin': time(13, 0), 'duracion_slot_min': 30},
+        {'id_especialista': especialista_2, 'dia_semana': 4, 'hora_inicio': time(14, 0), 'hora_fin': time(18, 0), 'duracion_slot_min': 30},
+        {'id_especialista': especialista_3, 'dia_semana': 0, 'hora_inicio': time(13, 0), 'hora_fin': time(17, 0), 'duracion_slot_min': 30},
+        {'id_especialista': especialista_1, 'dia_semana': 2, 'hora_inicio': time(9, 0), 'hora_fin': time(13, 0), 'duracion_slot_min': 30},
     ]
     for item in horarios_seed:
         _, created = HorarioEspecialista.objects.get_or_create(

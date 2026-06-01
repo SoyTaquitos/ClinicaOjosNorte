@@ -5,6 +5,23 @@
 ## Fecha
 2026-05-30
 
+## Actualización rápida (2026-06-01)
+1. **Frontend flujo médico-especialista:** especialistas ya no se crean desde usuarios sino desde médicos (`/api/medicos?page=1` -> `id_medico`).
+2. **Médicos simplificado en UI:** se retiran `especialidad_principal` y `subespecialidad` de create/edit/table en `/dashboard/medicos`.
+3. **Compatibilidad de listado especialistas:** tabla prioriza `nombre_usuario` y mantiene fallback con `id_usuario`/`id_medico`.
+4. **Sin rediseño visual:** se preserva UX de modales, permisos RBAC y acciones existentes.
+5. **Validación local pendiente de dependencias:** `npm run lint` no ejecuta en este entorno por falta de binario `next` instalado en host.
+
+## Actualización rápida (2026-06-01)
+1. **Fix backend post-movimiento de carpetas:** se normalizaron imports Python de `backend.apps.*` a `apps.*` en seeders, serializers, views y tests.
+2. **Consistencia por dominios:** imports alineados con `apps.Usuarios.*`, `apps.GestionClinica.*`, `apps.ReportesEstadisticas.*`.
+3. **Sin cambios funcionales:** ajuste 100% de rutas de importación.
+4. **Validación en contenedor Docker:**
+   - `python manage.py check` ✅
+   - `python manage.py showmigrations` ✅ (todo aplicado)
+   - `python manage.py makemigrations --check --dry-run` ✅ (sin cambios)
+   - `python manage.py seed --only admin` ✅ (idempotente)
+
 ## Actualización rápida
 1. **OpenCode multi-agente consolidado:** se estandariza operación en `.opencode/agents/` y se elimina dependencia de formato Cursor para evitar doble mantenimiento.
 2. **Subagentes OpenCode activos:** backend, frontend, ui-ux, architecture, architect-planner, code-review, qa-testing, devops, security, docs-memory, puds, diagrams-modeling.
