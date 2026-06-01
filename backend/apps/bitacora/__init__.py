@@ -1,1 +1,1 @@
-# apps/bitacora
+"""Paquete lógico: Bitácora (CU24)."""

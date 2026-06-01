@@ -3,9 +3,118 @@
 *Sincronización de documentación con el código en repo.*
 
 ## Fecha
-2026-05-07
+2026-05-30
 
 ## Resumen
+1. **Sidebar frontend reorganizado por paquetes funcionales:** secciones visuales alineadas a CU (`Reportes y estadísticas`, `Usuarios`, `Gestión clínica`, `Historial clínico`, `Bitácora`).
+2. **RBAC preservado:** cada ítem se sigue filtrando por `canViewRoute`, por lo que el agrupado no expone rutas no permitidas.
+3. **Historial clínico visible como roadmap:** sección con nota `Próximamente` sin rutas activas aún.
+4. **Ajuste de estilos:** nuevos bloques/separadores y etiqueta de nota en `Sidebar.module.css`.
+5. **Validación:** `npm run lint` frontend OK.
+
+## Resumen previo (sigue valido)
+1. **Fase 2 de paquetización iniciada (piloto roles):** app Django de roles trasladada físicamente a `backend/apps/Usuarios/roles`.
+2. **Configuración actualizada:**
+   - `INSTALLED_APPS` usa `apps.Usuarios.roles`.
+   - Rutas API incluyen `apps.Usuarios.roles.urls`.
+3. **Compatibilidad legacy preservada:** `apps.roles.models/serializers/views/urls/admin` quedan como wrappers hacia la nueva ubicación.
+4. **Migraciones de roles replicadas en nuevo paquete:** `0001_initial`, `0002_initial` dentro de `apps/Usuarios/roles/migrations`.
+5. **Validación técnica:** `manage.py check` OK y `apps.auth.tests.test_permissions_endpoint` OK.
+
+## Resumen previo (sigue valido)
+1. **Reorganización backend por paquetes CU (lógica):** creada estructura `Usuarios`, `GestionClinica`, `HistorialClinico`, `ReportesEstadisticas`, `Bitacora` dentro de `backend/apps`.
+2. **Compatibilidad preservada:** no se movieron físicamente las apps Django productivas; se añadieron aliases para evitar romper imports/migraciones.
+3. **Matriz de trazabilidad CU->módulo:** agregado `backend/apps/PACKAGE_CU_MAP.md` con cobertura y pendientes.
+4. **Estado de CUs avanzados:** CU15-CU20 quedan marcados como pendientes/parciales en módulo dedicado.
+5. **Validación:** `python manage.py check` en contenedor backend OK.
+
+## Resumen previo (sigue valido)
+1. **Reportes personalizados v2 implementados:** búsqueda, orden asc/desc, paginación, tamaño de página y visibilidad de columnas por cada bloque.
+2. **Persistencia por usuario:** preferencias de personalización guardadas en `localStorage` con key por `me.id`.
+3. **Export consistente con estado actual:** frontend envía `q`, `sort_by`, `sort_dir`; backend aplica esos parámetros en export CSV/XLSX/PDF.
+4. **Backend reportes extendido:** `apps.reportes.views` incorpora helpers de filtro/orden reutilizables para los 3 reportes.
+5. **Validación:** `npm run lint` frontend ✅, `manage.py test apps.reportes.tests.test_reportes_endpoints` ✅.
+
+## Resumen previo (sigue valido)
+1. **Reportes más personalizables (UI):** se agrega búsqueda y orden asc/desc por sección en `/dashboard/reportes`.
+2. **Pacientes atendidos:** orden por paciente/documento/consultas/primera/última atención + búsqueda por texto.
+3. **Citas por período:** orden por estado/total + búsqueda rápida.
+4. **Consultas por especialista:** orden por especialista/especialidad/total/ID + búsqueda.
+5. **Validación técnica:** `npm run lint` frontend en verde tras cambios.
+
+## Resumen previo (sigue valido)
+1. **Mejora solicitada en reportes:** bloque "Pacientes atendidos" ahora muestra detalles temporales de atención por paciente.
+2. **Backend reportes ajustado:** `apps.reportes.views._build_pacientes_atendidos` incorpora `total_consultas`, `primera_atencion` y `ultima_atencion` por paciente.
+3. **Exportables alineados:** CSV/Excel/PDF de pacientes atendidos incluyen las nuevas columnas temporales.
+4. **Frontend reportes actualizado:** tabla agrega columnas `Total consultas`, `Primera atención`, `Última atención` con formato `es-BO`.
+5. **Validación técnica:** tests backend reportes en verde + `npm run lint` frontend en verde.
+
+## Resumen previo (sigue valido)
+1. **Fix de reportes por especialista:** se corrige problema de cobertura en datos demo; antes solo aparecían 2 especialistas en `consultas-por-especialista`.
+2. **Causa raíz confirmada:** distribución sesgada en `ConsultaMedica` (360 registros repartidos únicamente entre especialistas 1 y 2).
+3. **Ajuste aplicado en seeders:**
+   - `seed_clinica` agrega usuarios/perfiles de especialistas adicionales.
+   - `seed_consultas_demo` agrega regla de mínimo por especialista (`MIN_CONSULTAS_POR_ESPECIALISTA = 40`).
+4. **Ejecución real en Docker:** `seed --only consultas-demo` -> `160 creados, 360 ya existían`.
+5. **Estado final validado:** `especialistas_activos=6`, `consultas_total=520`, distribución por especialista `181,179,40,40,40,40`.
+
+## Resumen previo (sigue valido)
+1. **Volumen de datos ampliado para reportes:** se extienden seeders clínicos para cubrir 6 meses con mayor densidad y consistencia entre pacientes, citas y consultas.
+2. **`seed_clinica` reforzado:** agrega generación sintética idempotente de pacientes (objetivo +60) para evitar sesgo de muestra corta.
+3. **`seed_dashboard_demo` reforzado:** pasa a granularidad cada 3 días en ventana de 180 días y mantiene proyección futura.
+4. **`seed_consultas_demo` reforzado:** objetivo sube a 360 consultas y autocompleta citas faltantes antes de registrar consultas.
+5. **Ejecución real en Docker:**
+   - `seed --only clinica` -> 60 creados
+   - `seed --only dashboard-demo` -> 132 creados
+   - `seed --only consultas-demo` -> 494 creados
+   - Conteo final: pacientes 72, citas 412, consultas 360.
+
+## Resumen previo (sigue valido)
+1. **Refactor UI/UX de reportes:** rediseño visual de `/dashboard/reportes` con secciones tipo card, jerarquía más clara y controles de exportación agrupados.
+2. **Responsive real en reportes:** toolbar y cabeceras de sección se adaptan a móvil; botones mantienen touch target >=44px; tablas conservan usabilidad con scroll horizontal.
+3. **Limpieza semántica frontend:** se eliminan menciones `CUxx` en textos visibles (reportes y consultas).
+4. **Calidad validada:** `npm run lint` y `npm run build` en verde tras cambios UI.
+
+## Resumen previo (sigue valido)
+1. **Reportes exportables en 3 formatos:** se agregan exportaciones por bloque de reporte en CSV, Excel (`xlsx`) y PDF.
+2. **Backend reportes extendido:** nuevos endpoints `/api/reportes/*/export` con selector `file_format=csv|xlsx|pdf`.
+3. **Dependencias backend nuevas:** `openpyxl` para Excel y `reportlab` para PDF en `requirements/base.txt`.
+4. **Frontend reportes actualizado:** botones por sección para exportar en CSV/Excel/PDF con descarga directa.
+5. **Pruebas backend reportes:** test de formatos exportables en verde (`apps.reportes.tests.test_reportes_endpoints`).
+
+## Resumen previo (sigue valido)
+1. **Seeders de volumen extendidos:** `seed_dashboard_demo` genera datos semanales para aproximadamente 6 meses (más ventana futura) y `seed_consultas_demo` aumenta cobertura para crear más consultas demo.
+2. **Datos demo recargados:** ejecución en entorno Docker crea 58 citas demo adicionales y 62 consultas demo adicionales.
+3. **Texto UI limpiado:** en `/dashboard/reportes` se elimina nomenclatura `CU21/CU22/CU23` y se dejan títulos funcionales.
+
+## Resumen previo (sigue valido)
+1. **Ajuste arquitectónico modular:** se separa reportes a módulo backend dedicado `apps.reportes`.
+2. **Rutas reportes preservadas:** `/api/reportes/pacientes-atendidos`, `/api/reportes/citas-por-periodo`, `/api/reportes/consultas-por-especialista` ahora son servidas por `apps.reportes` y no por `apps.dashboard`.
+3. **Registro de apps/urls actualizado:** `settings.py` incluye `apps.reportes`; `config/urls.py` monta `apps.reportes.urls`.
+4. **Pruebas por módulo:** nuevos tests en `apps/reportes/tests/test_reportes_endpoints.py` (3 casos en verde).
+5. **Consultas preservado como módulo propio:** `apps.consultas` se mantiene como dominio clínico para CU12/CU13/CU14; reportes queda desacoplado.
+
+## Resumen previo (sigue valido)
+1. **CU12 implementado:** se extiende `ConsultaMedica` con triaje y presión intraocular (PIO OD/OI) + validaciones de rango en serializer.
+2. **CU13 implementado:** se agrega bloque de examen de refracción (OD/OI esfera-cilindro-eje, agudeza visual SC/CC) en backend y formulario frontend de consultas.
+3. **CU14 implementado:** diagnóstico clínico ampliado con `diagnostico_secundario` y `codigo_cie10`.
+4. **CU21/CU22/CU23 implementados:** nuevos endpoints `/api/reportes/pacientes-atendidos`, `/api/reportes/citas-por-periodo`, `/api/reportes/consultas-por-especialista`.
+5. **UI de reportes agregada:** nueva ruta `/dashboard/reportes` con filtros `date_from/date_to`, tablas por CU y resumen por bloque.
+6. **RBAC actualizado:** nuevo permiso `reportes.ver` en `seed_permisos` y asignado en `seed_rbac_asignaciones`.
+7. **Navegación y autorización frontend:** `Sidebar` agrega `Reportes`; `authorization.ts` incorpora módulo/ruta `reportes` para control de vista.
+8. **Validación backend:** migración `consultas.0002_cu12_cu13_cu14_fields` aplicada y pruebas `apps.dashboard.tests` en verde (6 tests).
+9. **Validación frontend:** `npm run lint` en verde y `npm run build` exitoso en contenedor `frontend`.
+
+## Resumen previo (sigue valido)
+1. **Sistema multi-agente OpenCode oficial:** se crea estructura `.opencode/agents/` y `.opencode/skills/`.
+2. **Orchestrator OpenCode:** nuevo `orchestrator` con `mode: primary`, permisos `skill` y `task` para delegacion controlada por agente.
+3. **Subagentes especialistas creados:** `backend`, `frontend`, `ui-ux`, `architecture`, `architect-planner`, `code-review`, `qa-testing`, `devops`.
+4. **Seguridad de revision:** `code-review` se define read-only con `edit: deny` y comandos git permitidos en modo controlado.
+5. **Deteccion de stack con evidencia real:** Django/DRF + Next.js + PostgreSQL + Docker Compose (+ Mailhog en dev).
+6. **Agente mobile no creado:** no hay evidencia suficiente de app Flutter/React Native/Kotlin/Swift/Expo en el workspace.
+7. **Documentacion OpenCode agregada:** `.opencode/README.md` y `.opencode/skills/README.md` con reglas de uso y validacion.
+
+## Resumen previo (sigue valido)
 1. **Citas UX refinado (Fase 1):** `/dashboard/citas` reemplaza `window.prompt` por modales de cancelación y reprogramación con campos explícitos (fecha, hora, motivo).
 2. **Hardening post-review:** se añadió protección contra doble envío en confirmar cancelar/reprogramar, validación de fecha/hora inválida y mínimo de caracteres en motivo.
 3. **Accesibilidad + feedback:** modales con `ESC`, foco inicial, trampa de foco, atributos ARIA y mensajes inline por campo.
@@ -60,6 +169,8 @@
 50. **Validación tras refactor E2E:** suite completa mantiene 5/5 casos en verde.
 51. **Seeder dashboard agregado:** nuevo `--only dashboard-demo` para poblar volumen analítico de citas con estados mezclados.
 52. **Verificación dashboard post-reset:** `seed --only dashboard-demo` ejecutado OK y endpoints `/api/dashboard/summary`, `/api/dashboard/operativo`, `/api/dashboard/citas-drilldown` y export CSV responden correctamente.
+53. **Fix de estabilidad en seed:** `seed_dashboard_demo` ahora evita crear citas activas en slots ya ocupados y elimina error por restricción única (`uq_cita_especialista_fecha_hora_activa`).
+54. **Verificación final:** `python manage.py seed` completo ejecuta sin fallo tras el ajuste.
 
 ## Resumen previo (sigue válido)
 1. **KPI pro implementado:** drilldown con paginación (`page/page_size`) + export CSV (`/api/kpi/citas-drilldown/export`).

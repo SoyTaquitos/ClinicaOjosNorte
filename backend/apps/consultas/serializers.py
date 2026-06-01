@@ -17,7 +17,27 @@ class ConsultaMedicaSerializer(serializers.ModelSerializer):
             'motivo_consulta',
             'anamnesis',
             'hallazgos',
+            'peso_kg',
+            'talla_cm',
+            'temperatura_c',
+            'presion_arterial',
+            'frecuencia_cardiaca',
+            'frecuencia_respiratoria',
+            'saturacion_oxigeno',
+            'triaje_observaciones',
+            'presion_intraocular_od',
+            'presion_intraocular_oi',
+            'refraccion_od_esfera',
+            'refraccion_od_cilindro',
+            'refraccion_od_eje',
+            'refraccion_oi_esfera',
+            'refraccion_oi_cilindro',
+            'refraccion_oi_eje',
+            'agudeza_visual_sc',
+            'agudeza_visual_cc',
             'diagnostico',
+            'diagnostico_secundario',
+            'codigo_cie10',
             'plan_tratamiento',
             'registrado_por',
             'fecha_creacion',
@@ -35,6 +55,29 @@ class ConsultaMedicaSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('El paciente no coincide con la cita.')
         if especialista.id_especialista != cita.id_especialista_id:
             raise serializers.ValidationError('El especialista no coincide con la cita.')
+
+        pio_od = attrs.get('presion_intraocular_od')
+        pio_oi = attrs.get('presion_intraocular_oi')
+        if pio_od is not None and (pio_od < 0 or pio_od > 80):
+            raise serializers.ValidationError('La presión intraocular OD debe estar entre 0 y 80 mmHg.')
+        if pio_oi is not None and (pio_oi < 0 or pio_oi > 80):
+            raise serializers.ValidationError('La presión intraocular OI debe estar entre 0 y 80 mmHg.')
+
+        temp = attrs.get('temperatura_c')
+        if temp is not None and (temp < 30 or temp > 45):
+            raise serializers.ValidationError('La temperatura debe estar entre 30 y 45 °C.')
+
+        sat = attrs.get('saturacion_oxigeno')
+        if sat is not None and sat > 100:
+            raise serializers.ValidationError('La saturación de oxígeno no puede ser mayor a 100.')
+
+        eje_od = attrs.get('refraccion_od_eje')
+        eje_oi = attrs.get('refraccion_oi_eje')
+        if eje_od is not None and eje_od > 180:
+            raise serializers.ValidationError('El eje OD debe estar entre 0 y 180.')
+        if eje_oi is not None and eje_oi > 180:
+            raise serializers.ValidationError('El eje OI debe estar entre 0 y 180.')
+
         return attrs
 
     def create(self, validated_data):

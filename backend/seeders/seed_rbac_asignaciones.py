@@ -24,6 +24,7 @@ ROLE_PERMISSION_CODES = {
         'agenda.ver',
         'consultas.listar', 'consultas.crear',
         'dashboard.ver',
+        'reportes.ver',
     ],
     'Operador IAM': [
         'users.listar', 'users.ver', 'users.crear', 'users.editar',
@@ -46,6 +47,7 @@ ROLE_PERMISSION_CODES = {
         'citas.listar', 'citas.crear', 'citas.reprogramar',
         'agenda.ver',
         'dashboard.ver',
+        'reportes.ver',
     ],
     'Médico Clínico': [
         'pacientes.listar',
@@ -53,6 +55,7 @@ ROLE_PERMISSION_CODES = {
         'citas.listar',
         'agenda.ver',
         'consultas.listar', 'consultas.crear',
+        'reportes.ver',
     ],
     'Especialista Clínico': [
         'pacientes.listar',
@@ -60,6 +63,7 @@ ROLE_PERMISSION_CODES = {
         'citas.listar',
         'agenda.ver',
         'consultas.listar', 'consultas.crear',
+        'reportes.ver',
     ],
 }
 

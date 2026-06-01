@@ -20,7 +20,7 @@ api_patterns = [
     path('', include('apps.users.urls')),
 
     # Roles y asignaciones usuario-rol
-    path('', include('apps.roles.urls')),
+    path('', include('apps.Usuarios.roles.urls')),
 
     # Permisos granulares
     path('', include('apps.permisos.urls')),
@@ -34,6 +34,7 @@ api_patterns = [
     path('', include('apps.citas.urls')),
     path('', include('apps.consultas.urls')),
     path('', include('apps.dashboard.urls')),
+    path('', include('apps.reportes.urls')),
 ]
 
 urlpatterns = [

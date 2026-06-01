@@ -26,7 +26,33 @@ class ConsultaMedica(models.Model):
     motivo_consulta = models.TextField()
     anamnesis = models.TextField(blank=True, null=True)
     hallazgos = models.TextField(blank=True, null=True)
+
+    # CU12: Triaje y presion intraocular
+    peso_kg = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    talla_cm = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    temperatura_c = models.DecimalField(max_digits=4, decimal_places=1, blank=True, null=True)
+    presion_arterial = models.CharField(max_length=20, blank=True, null=True)
+    frecuencia_cardiaca = models.PositiveSmallIntegerField(blank=True, null=True)
+    frecuencia_respiratoria = models.PositiveSmallIntegerField(blank=True, null=True)
+    saturacion_oxigeno = models.PositiveSmallIntegerField(blank=True, null=True)
+    triaje_observaciones = models.TextField(blank=True, null=True)
+    presion_intraocular_od = models.DecimalField(max_digits=4, decimal_places=1, blank=True, null=True)
+    presion_intraocular_oi = models.DecimalField(max_digits=4, decimal_places=1, blank=True, null=True)
+
+    # CU13: Examen de refraccion
+    refraccion_od_esfera = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    refraccion_od_cilindro = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    refraccion_od_eje = models.PositiveSmallIntegerField(blank=True, null=True)
+    refraccion_oi_esfera = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    refraccion_oi_cilindro = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    refraccion_oi_eje = models.PositiveSmallIntegerField(blank=True, null=True)
+    agudeza_visual_sc = models.CharField(max_length=20, blank=True, null=True)
+    agudeza_visual_cc = models.CharField(max_length=20, blank=True, null=True)
+
+    # CU14: Diagnostico
     diagnostico = models.TextField()
+    diagnostico_secundario = models.TextField(blank=True, null=True)
+    codigo_cie10 = models.CharField(max_length=12, blank=True, null=True)
     plan_tratamiento = models.TextField(blank=True, null=True)
     registrado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,

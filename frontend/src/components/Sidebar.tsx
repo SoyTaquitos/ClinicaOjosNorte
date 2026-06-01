@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, UserCog, ShieldCheck, KeyRound, Activity, LogOut,
   Eye, X, ShieldAlert, UsersRound,
-  UserRoundCog, CalendarClock, CalendarDays, Stethoscope,
+  UserRoundCog, CalendarClock, CalendarDays, Stethoscope, FileText,
 } from 'lucide-react';
 import { useDashboardUser } from '@/contexts/DashboardUserContext';
 import { logoutApi } from '@/lib/api';
@@ -16,27 +16,46 @@ import { initialsFromMe, labelTipoUsuario } from '@/lib/meProfile';
 import { getPublicAppName } from '@/lib/siteConfig';
 import styles from './Sidebar.module.css';
 
-const NAV_ITEMS: {
-  href: string;
-  icon: LucideIcon;
-  label: string;
-}[] = [
-  { href: '/dashboard',           icon: LayoutDashboard, label: 'Dashboard'  },
-  { href: '/dashboard/inicio',    icon: LayoutDashboard, label: 'Inicio'     },
-  { href: '/dashboard/usuarios', icon: UserCog,        label: 'Usuarios'   },
-  { href: '/dashboard/roles',    icon: ShieldCheck,    label: 'Roles'      },
-  { href: '/dashboard/permisos', icon: KeyRound,       label: 'Permisos'   },
-  { href: '/dashboard/pacientes', icon: UsersRound,    label: 'Pacientes'  },
-  { href: '/dashboard/especialistas', icon: UserRoundCog, label: 'Especialistas' },
-  { href: '/dashboard/citas', icon: CalendarClock,     label: 'Citas' },
-  { href: '/dashboard/agenda-medica', icon: CalendarDays, label: 'Agenda médica' },
-  { href: '/dashboard/consultas', icon: Stethoscope,   label: 'Consultas' },
+type NavItem = { href: string; icon: LucideIcon; label: string };
+type NavGroup = { label: string; items: NavItem[]; note?: string };
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    href: '/dashboard/seguridad-login',
-    icon: ShieldAlert,
-    label: 'Login seguridad',
+    label: 'Reportes y estadísticas',
+    items: [
+      { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { href: '/dashboard/inicio', icon: LayoutDashboard, label: 'Inicio' },
+      { href: '/dashboard/reportes', icon: FileText, label: 'Reportes' },
+    ],
   },
-  { href: '/dashboard/bitacora',  icon: Activity,       label: 'Bitácora'   },
+  {
+    label: 'Usuarios',
+    items: [
+      { href: '/dashboard/usuarios', icon: UserCog, label: 'Usuarios' },
+      { href: '/dashboard/roles', icon: ShieldCheck, label: 'Roles' },
+      { href: '/dashboard/permisos', icon: KeyRound, label: 'Permisos' },
+      { href: '/dashboard/seguridad-login', icon: ShieldAlert, label: 'Login seguridad' },
+    ],
+  },
+  {
+    label: 'Gestión clínica',
+    items: [
+      { href: '/dashboard/pacientes', icon: UsersRound, label: 'Pacientes' },
+      { href: '/dashboard/especialistas', icon: UserRoundCog, label: 'Especialistas' },
+      { href: '/dashboard/citas', icon: CalendarClock, label: 'Citas' },
+      { href: '/dashboard/agenda-medica', icon: CalendarDays, label: 'Agenda médica' },
+      { href: '/dashboard/consultas', icon: Stethoscope, label: 'Consultas' },
+    ],
+  },
+  {
+    label: 'Historial clínico',
+    items: [],
+    note: 'Próximamente',
+  },
+  {
+    label: 'Bitácora',
+    items: [{ href: '/dashboard/bitacora', icon: Activity, label: 'Bitácora' }],
+  },
 ];
 
 interface SidebarProps {
@@ -59,6 +78,10 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
       : 'Sin sesión';
   const initials = me ? initialsFromMe(me) : loading ? '·' : '?';
   const userInfoTitle = `${displayName} — ${roleLabel}`;
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => canViewRoute(me, item.href, permissionCodes)),
+  })).filter((group) => group.items.length > 0 || group.note);
 
   function handleNavClick() {
     if (typeof window !== 'undefined' && window.innerWidth < 769) onClose();
@@ -96,18 +119,23 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
 
         <nav className={styles.nav} aria-label="Menú principal">
           <ul>
-            {NAV_ITEMS.filter((item) => canViewRoute(me, item.href, permissionCodes)).map(
-              ({ href, icon: Icon, label }) => (
-              <li key={href}>
-                <Link
-                  href={href}
-                  className={`${styles.navItem} ${pathname === href ? styles.active : ''}`}
-                  onClick={handleNavClick}
-                  title={label}
-                >
-                  <span className={styles.navIcon}><Icon size={19} strokeWidth={1.8} /></span>
-                  <span className={styles.navLabel}>{label}</span>
-                </Link>
+            {visibleGroups.map((group, groupIdx) => (
+              <li key={group.label}>
+                <p className={styles.navSectionLabel}>{group.label}</p>
+                {group.note ? <p className={styles.navSectionNote}>{group.note}</p> : null}
+                {group.items.map(({ href, icon: Icon, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`${styles.navItem} ${pathname === href ? styles.active : ''}`}
+                    onClick={handleNavClick}
+                    title={label}
+                  >
+                    <span className={styles.navIcon}><Icon size={19} strokeWidth={1.8} /></span>
+                    <span className={styles.navLabel}>{label}</span>
+                  </Link>
+                ))}
+                {groupIdx < visibleGroups.length - 1 ? <div className={styles.navDivider} /> : null}
               </li>
             ))}
           </ul>

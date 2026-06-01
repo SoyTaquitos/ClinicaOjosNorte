@@ -23,6 +23,12 @@ const PAGE_NAMES: Record<string, string> = {
   '/dashboard/seguridad-login': 'Login seguridad',
   '/dashboard/contrasena':      'Contraseña',
   '/dashboard/bitacora':        'Bitácora',
+  '/dashboard/pacientes':       'Pacientes',
+  '/dashboard/especialistas':   'Especialistas',
+  '/dashboard/citas':           'Citas',
+  '/dashboard/agenda-medica':   'Agenda médica',
+  '/dashboard/consultas':       'Consultas',
+  '/dashboard/reportes':        'Reportes',
 };
 
 interface DashboardNavbarProps {

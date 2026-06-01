@@ -20,7 +20,48 @@ from apps.pacientes.models import Paciente
 from apps.users.models import TipoUsuario, Usuario
 
 
-CONSULTAS_OBJETIVO = 2
+CONSULTAS_OBJETIVO = 360
+MIN_CONSULTAS_POR_ESPECIALISTA = 40
+
+
+def _completar_citas_para_consultas(registrador, faltantes):
+    pacientes = list(Paciente.objects.filter(activo=True).order_by('id_paciente')[:50])
+    especialistas = list(Especialista.objects.filter(activo=True).order_by('id_especialista')[:6])
+    if not pacientes or not especialistas:
+        return 0, 0
+
+    creados = 0
+    existentes = 0
+    base = timezone.localtime(timezone.now()).replace(hour=8, minute=0, second=0, microsecond=0)
+
+    for i in range(faltantes):
+        paciente = pacientes[i % len(pacientes)]
+        especialista = especialistas[i % len(especialistas)]
+        day_offset = -(i % 180)
+        hour_offset = (i // 180) % 8
+        start = base + timedelta(days=day_offset, hours=hour_offset)
+        end = start + timedelta(minutes=30)
+
+        cita, created = Cita.objects.get_or_create(
+            id_paciente=paciente,
+            id_especialista=especialista,
+            fecha_hora_inicio=start,
+            defaults={
+                'fecha_hora_fin': end,
+                'motivo': f'Control demo reportes #{i + 1}',
+                'estado': EstadoCita.ATENDIDA,
+                'registrado_por': registrador,
+            },
+        )
+        if created:
+            creados += 1
+        else:
+            existentes += 1
+            if cita.estado not in [EstadoCita.PROGRAMADA, EstadoCita.CONFIRMADA, EstadoCita.ATENDIDA]:
+                cita.estado = EstadoCita.ATENDIDA
+                cita.save(update_fields=['estado', 'fecha_actualizacion'])
+
+    return creados, existentes
 
 
 def _usuario_registrador():
@@ -30,6 +71,66 @@ def _usuario_registrador():
         .first()
     )
     return candidato
+
+
+def _asegurar_consultas_minimas_por_especialista(registrador):
+    especialistas = list(Especialista.objects.filter(activo=True).order_by('id_especialista'))
+    pacientes = list(Paciente.objects.filter(activo=True).order_by('id_paciente')[:60])
+    if not especialistas or not pacientes:
+        return 0, 0
+
+    creados = 0
+    existentes = 0
+    ahora = timezone.localtime(timezone.now()).replace(hour=8, minute=0, second=0, microsecond=0)
+
+    for idx_especialista, especialista in enumerate(especialistas):
+        actual = ConsultaMedica.objects.filter(id_especialista=especialista).count()
+        faltantes = max(0, MIN_CONSULTAS_POR_ESPECIALISTA - actual)
+        if faltantes == 0:
+            continue
+
+        for i in range(faltantes):
+            paciente = pacientes[(idx_especialista + i) % len(pacientes)]
+            day_offset = -((idx_especialista * MIN_CONSULTAS_POR_ESPECIALISTA + i) % 180)
+            hour_offset = (i % 8)
+            start = ahora + timedelta(days=day_offset, hours=hour_offset)
+            end = start + timedelta(minutes=30)
+
+            cita, cita_created = Cita.objects.get_or_create(
+                id_paciente=paciente,
+                id_especialista=especialista,
+                fecha_hora_inicio=start,
+                defaults={
+                    'fecha_hora_fin': end,
+                    'motivo': f'Control demo especialista #{especialista.id_especialista}-{i + 1}',
+                    'estado': EstadoCita.ATENDIDA,
+                    'registrado_por': registrador,
+                },
+            )
+            if not cita_created and cita.estado not in [EstadoCita.PROGRAMADA, EstadoCita.CONFIRMADA, EstadoCita.ATENDIDA]:
+                cita.estado = EstadoCita.ATENDIDA
+                cita.save(update_fields=['estado', 'fecha_actualizacion'])
+
+            consulta, consulta_created = ConsultaMedica.objects.get_or_create(
+                id_cita=cita,
+                defaults={
+                    'id_paciente': paciente,
+                    'id_especialista': especialista,
+                    'motivo_consulta': f'Control por especialidad {especialista.especialidad} #{i + 1}',
+                    'anamnesis': 'Seguimiento clínico demo para reportes.',
+                    'hallazgos': 'Evolución estable sin signos de alarma.',
+                    'diagnostico': 'Control oftalmológico de rutina.',
+                    'plan_tratamiento': 'Continuar controles periódicos y tratamiento indicado.',
+                    'registrado_por': registrador,
+                },
+            )
+
+            if consulta_created:
+                creados += 1
+            else:
+                existentes += 1
+
+    return creados, existentes
 
 
 @transaction.atomic
@@ -43,7 +144,7 @@ def run():
 
     citas_disponibles = (
         Cita.objects.select_related('id_paciente', 'id_especialista')
-        .filter(estado__in=[EstadoCita.PROGRAMADA, EstadoCita.CONFIRMADA])
+        .filter(estado__in=[EstadoCita.PROGRAMADA, EstadoCita.CONFIRMADA, EstadoCita.ATENDIDA])
         .order_by('-fecha_hora_inicio')
     )
 
@@ -76,6 +177,27 @@ def run():
             existentes += 1
 
         citas_disponibles = Cita.objects.filter(id_cita=nueva_cita.id_cita)
+
+    total_citas_disponibles = citas_disponibles.count()
+    if total_citas_disponibles < CONSULTAS_OBJETIVO:
+        c2, e2 = _completar_citas_para_consultas(registrador, CONSULTAS_OBJETIVO - total_citas_disponibles)
+        creados += c2
+        existentes += e2
+        citas_disponibles = (
+            Cita.objects.select_related('id_paciente', 'id_especialista')
+            .filter(estado__in=[EstadoCita.PROGRAMADA, EstadoCita.CONFIRMADA, EstadoCita.ATENDIDA])
+            .order_by('-fecha_hora_inicio')
+        )
+
+    c3, e3 = _asegurar_consultas_minimas_por_especialista(registrador)
+    creados += c3
+    existentes += e3
+
+    citas_disponibles = (
+        Cita.objects.select_related('id_paciente', 'id_especialista')
+        .filter(estado__in=[EstadoCita.PROGRAMADA, EstadoCita.CONFIRMADA, EstadoCita.ATENDIDA])
+        .order_by('-fecha_hora_inicio')
+    )
 
     for idx, cita in enumerate(citas_disponibles[:CONSULTAS_OBJETIVO], start=1):
         consulta, created = ConsultaMedica.objects.get_or_create(
