@@ -41,6 +41,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Gestión clínica',
     items: [
       { href: '/dashboard/pacientes', icon: UsersRound, label: 'Pacientes' },
+      { href: '/dashboard/medicos', icon: UserRoundCog, label: 'Médicos' },
       { href: '/dashboard/especialistas', icon: UserRoundCog, label: 'Especialistas' },
       { href: '/dashboard/citas', icon: CalendarClock, label: 'Citas' },
       { href: '/dashboard/agenda-medica', icon: CalendarDays, label: 'Agenda médica' },

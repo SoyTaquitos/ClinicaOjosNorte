@@ -4,7 +4,7 @@ Pobla la tabla permisos con los permisos granulares del sistema (IAM).
 Idempotente: usa get_or_create.
 
 Convención: '<modulo>.<accion>'
-Módulos vigentes: users, bitacora, roles, permisos, pacientes, especialistas, citas, consultas, agenda, dashboard
+Módulos vigentes: users, bitacora, roles, permisos, pacientes, especialistas, medicos, citas, consultas, agenda, dashboard
 """
 from apps.permisos.models import Permiso
 
@@ -40,6 +40,12 @@ PERMISOS = [
     {'codigo': 'especialistas.crear',    'nombre': 'Crear especialista',     'modulo': 'especialistas'},
     {'codigo': 'especialistas.editar',   'nombre': 'Editar especialista',    'modulo': 'especialistas'},
     {'codigo': 'especialistas.eliminar', 'nombre': 'Eliminar especialista',  'modulo': 'especialistas'},
+
+    # Médicos
+    {'codigo': 'medicos.listar',   'nombre': 'Listar médicos',   'modulo': 'medicos'},
+    {'codigo': 'medicos.crear',    'nombre': 'Crear médico',     'modulo': 'medicos'},
+    {'codigo': 'medicos.editar',   'nombre': 'Editar médico',    'modulo': 'medicos'},
+    {'codigo': 'medicos.eliminar', 'nombre': 'Eliminar médico',  'modulo': 'medicos'},
 
     # Citas
     {'codigo': 'citas.listar',       'nombre': 'Listar citas',       'modulo': 'citas'},

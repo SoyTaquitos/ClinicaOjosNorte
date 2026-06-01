@@ -3,12 +3,15 @@
 Lista priorizada de los siguientes pasos a realizar en el proyecto Oftalmología SI1.
 
 ## Inmediato
+- [x] Consolidar sistema multi-agente en **OpenCode** (`.opencode/agents/`) y retirar configuración paralela Cursor para evitar deriva.
+- [x] Crear skill de diagramas PUDS/UML/C4 en `.opencode/skills/uml-c4-puds-diagrams/SKILL.md`.
 - [x] Configurar sistema multi-agente OpenCode oficial en `.opencode/agents/` con `orchestrator` + subagentes por dominio.
 - [x] Documentar sistema OpenCode en `.opencode/README.md` y estado de skills en `.opencode/skills/README.md`.
-- [ ] Levantar Docker (`docker-compose up --build`) y verificar migraciones sin errores.
+- [x] Levantar Docker (`docker-compose up --build`) y verificar migraciones sin errores.
 - [ ] Regenerar entorno backend para instalar `drf-spectacular` y validar `/api/docs/` + `/api/schema/`.
 - [ ] Ejecutar migraciones nuevas de dominio clínico (`pacientes`, `especialistas`, `citas`, `consultas`) y validar constraints de horarios/solapamiento.
-- [ ] Ejecutar seed: `docker-compose exec backend python manage.py seed` (o `docker compose` según tu CLI).
+- [x] Ejecutar seed: `docker-compose exec backend python manage.py seed` (o `docker compose` según tu CLI).
+- [x] Automatizar bootstrap backend con `migrate + seed` al iniciar contenedor (flags `AUTO_MIGRATE`/`AUTO_SEED`).
 - [x] Ejecutar seed clínico base: `docker compose exec backend python manage.py seed --only clinica`.
 - [x] Ejecutar seed consultas demo: `docker compose exec backend python manage.py seed --only consultas-demo`.
 - [x] Cliente Next: interceptar 401 → intentar `POST /api/auth/token/refresh/` con refresh guardado; solo si falla, limpiar sesión y mandar a `/login`.
@@ -40,7 +43,8 @@ Lista priorizada de los siguientes pasos a realizar en el proyecto Oftalmología
 - [x] Frontend: Endurecer UX de Citas (siguiente) con validación por campo y foco/teclado accesible en modales.
 - [ ] Frontend: Endurecer UX de Citas (siguiente iteración) con estados avanzados de agenda y reglas de negocio guiadas por contexto.
 - [ ] Frontend: Módulo de Historias Clínicas (rutas anidadas bajo historial; diagnósticos, recetas, etc.).
-- [ ] Frontend: Mejorar módulo de Especialistas/Disponibilidades con edición inline y validaciones de conflictos por bloque.
+- [ ] Conectar `Médicos` con `Consultas` para seleccionar médico tratante explícito cuando aplique flujo clínico.
+- [ ] Frontend: Mejorar módulo de Especialistas/Disponibilidades con validaciones de conflictos por bloque en edición (ya existe modal de edición).
 - [ ] Revisión seguridad sesión: cookies http-only / CSRF si el despliegue lo exige.
 
 ## Largo Plazo

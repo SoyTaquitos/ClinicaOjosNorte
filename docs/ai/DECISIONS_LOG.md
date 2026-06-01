@@ -10,6 +10,20 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+### Registro 60
+
+**Fecha:** 2026-05-31
+**Decisión:** Configurar sistema multi-agente en formato oficial Cursor bajo `.cursor/agents/` con `orchestrator` y subagentes solo para capacidades confirmadas por evidencia del repo.
+**Motivo:** Necesidad de estandarizar operación en Cursor sin mezclar formatos con OpenCode, preservando trazabilidad y routing por dominio real (Django/DRF + Next.js + Docker).
+**Impacto:** nuevos agentes Cursor (`backend`, `frontend`, `infra`, `architect-planner`, `reviewer`, `qa-testing`, `security`, `docs-memory`, `puds`, `diagrams-modeling`), skill de diagramas (`.cursor/skills/uml-c4-puds-diagrams/SKILL.md`) y MCP de proyecto (`.cursor/mcp.json` + ejemplo con EA). Se excluyen `mobile`, `ai-inference`, `ai-researcher` por falta de evidencia suficiente.
+
+### Registro 61
+
+**Fecha:** 2026-05-31
+**Decisión:** Unificar definitivamente el sistema multi-agente en formato **OpenCode** y mover la configuración operativa a `.opencode/agents/` y `.opencode/skills/`.
+**Motivo:** El runtime real en uso del proyecto es OpenCode; mantener paralelo Cursor + OpenCode generaba duplicidad y riesgo de deriva de prompts/routing.
+**Impacto:** se actualiza `orchestrator` OpenCode con routing ampliado (`security`, `docs-memory`, `puds`, `diagrams-modeling`), se crea skill OpenCode `uml-c4-puds-diagrams`, y se retiran artefactos Cursor para evitar confusión.
+
 ### Registro 53
 
 **Fecha:** 2026-05-30

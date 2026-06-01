@@ -4,6 +4,7 @@
 **Oftalmología SI1 — Clínica de Ojos Norte.** Backend Django + frontend Next.js (panel web IAM y auditoría). Modelo SI1: paciente = datos sin login; sin app móvil; sin registro público.
 
 ## Backend
+- **Bootstrap automático en contenedor backend (2026-05-31):** `entrypoint.sh` ahora ejecuta automáticamente `migrate` y `seed` al iniciar el contenedor (controlado por envs `AUTO_MIGRATE` y `AUTO_SEED`, ambos `true` por defecto en `docker-compose.yml`).
 - **Paquetización lógica por dominio CU (2026-05-30):** se crea estructura de paquetes lógicos en `backend/apps`:
   - `Usuarios/` (CU1-CU6)
   - `GestionClinica/` (CU7-CU17)
@@ -51,6 +52,18 @@
 - **Módulo Pacientes (frontend):** ruta `/dashboard/pacientes` conectada a `/api/pacientes` con listado paginado, búsqueda, filtros (`sexo`, `activo`), alta, edición y eliminación; feedback visual y diseño alineado a tokens de paleta violeta.
 - **UX delete paciente/especialista reforzada (frontend):** cuando backend responde `409` por historial clínico protegido, UI ofrece desactivación inmediata y evita flujo roto de eliminación.
 - **Módulo Especialistas + Horarios (frontend):** ruta `/dashboard/especialistas` conectada a `/api/especialistas` y `/api/horarios-especialista` con alta y eliminación base; política UI de escritura activa para `ADMIN`/`ADMINISTRATIVO`.
+- **Fix UX funcional en Especialistas (2026-05-31):** botones `Crear especialista` y `Crear horario` ahora validan campos requeridos y muestran mensaje explícito de error cuando faltan datos (antes podían parecer "no funcionales" por return silencioso).
+- **Formularios de gestión clínica mejorados (2026-05-31):**
+  - `especialistas`: alta de especialista y alta de horario ahora por **modal de creación** (se removieron formularios inline), y edición en modal para especialista y horario.
+  - `medicos`: alta ahora mediante **modal de creación** al pulsar `Crear médico` (se elimina el formulario inline), y edición en modal desde tabla para actualizar matrícula/especialidad/experiencia.
+  - `citas`: programación ahora por **modal de creación** al pulsar `Programar cita` (se elimina formulario inline), con validación y feedback.
+  - `consultas`: registro ahora por **modal de creación** al pulsar `Registrar consulta` (se oculta formulario extendido inline), manteniendo validación explícita de campos críticos (`cita`, `diagnóstico`, `plan`).
+  - Modales clínicos (`medicos`/`especialistas`): cierre con tecla `ESC` y clic fuera del panel.
+- **Nuevo módulo Médicos (backend+frontend, 2026-05-31):**
+  - Backend `apps.medicos` con CRUD `/api/medicos` y atributos propios: `matricula`, `especialidad_principal`, `subespecialidad`, `anios_experiencia`, `activo`.
+  - Frontend nueva ruta `/dashboard/medicos` con formulario y tabla operativa (crear, desactivar, eliminar).
+  - Sidebar incluye acceso `Médicos` dentro de `Gestión clínica`.
+  - RBAC ampliado con permisos `medicos.listar|crear|editar|eliminar`.
 - **Desactivación directa en tablas:** pacientes y especialistas ahora incluyen acción `Desactivar` (PATCH `activo=false`) para continuidad operativa sin borrar historial.
 - **Borrado seguro de especialistas (backend):** si especialista tiene historial dependiente (citas/consultas), `DELETE /api/especialistas/{id}` responde `409` con mensaje de negocio (no 500) y recomienda desactivar en lugar de eliminar.
 - **Módulo Citas (frontend):** ruta `/dashboard/citas` conectada a `/api/citas` con programación y acciones `cancelar`/`reprogramar` mediante modales en UI (sin `window.prompt`), con protección de doble envío, validación de fecha/hora, mínimo de caracteres en motivo y mejoras de accesibilidad (ESC, foco inicial, foco contenido en modal, `role="dialog"` + `aria-modal`, mensajes inline por campo). Política actual en UI: escritura habilitada para `ADMIN` y `ADMINISTRATIVO`; `MEDICO`/`ESPECIALISTA` operan en modo lectura en este módulo.
@@ -112,6 +125,15 @@
   - `seed_dashboard_demo` aumenta densidad temporal (cada 3 días en ventana de 180 días + proyección futura).
   - `seed_consultas_demo` eleva objetivo a `360` consultas y completa citas faltantes para sostener ese volumen.
   - Verificación post-seed en entorno actual: `pacientes=72`, `citas=412`, `consultas=360`.
+- **Ajuste de realismo en seeders (2026-05-31):**
+  - `seed_clinica`: pacientes sintéticos con documentos más realistas (prefijo por departamento + secuencia) y mayor variedad de nombres/fechas/telefonía.
+  - `seed_dashboard_demo`: citas con distribución más variada de horas/minutos y motivos clínicos realistas.
+  - `seed_consultas_demo`: dispersión temporal reforzada (día/hora/minuto), y sincronización de `fecha_creacion` de consulta con `fecha_hora_inicio` de la cita para que reportes reflejen 6 meses reales (no concentrado en un solo día).
+  - Ajuste adicional: `fecha_creacion` de consultas ahora incorpora offset determinístico por paciente+especialista para evitar empates masivos en "última atención" dentro del reporte de pacientes atendidos.
+  - `seed_dashboard_demo`: distribución de pacientes por salto primo para reducir repeticiones consecutivas evidentes en listado de citas demo; además sincroniza registros legacy con motivo `Dashboard demo` a motivos clínicos reales.
+  - `seed_clinica`: normalización fuerte de pacientes demo (email `paciente.*`) para garantizar unicidad de combinación de nombres y apellidos en el conjunto generado (sin duplicados en los 60 sintéticos).
+- **Reporte por período refinado (2026-05-31):** bloque `Citas por período` ahora retorna y muestra `fecha + estado + total` (no solo estado agregado), manteniendo filtro `date_from/date_to`.
+- **Consultas con médico (UX):** en formulario de consultas se ajusta etiqueta a `Médico (ID profesional)` para alinear lenguaje operativo.
 - **Ajuste de cobertura de reportes por especialista (2026-05-30):**
   - Se detectó sesgo de datos: reporte `consultas-por-especialista` mostraba solo 2 especialistas porque las 360 consultas existentes estaban concentradas en IDs 1 y 2.
   - `seed_clinica` amplía staff clínico (7 usuarios activos; 6 perfiles de especialista activos).
@@ -180,6 +202,13 @@ El archivo **`BaseDeDatos.sql`** (DBML para dbdiagram.io) debe mantenerse alinea
 - `code-review` queda en modo solo revision (`edit: deny`).
 - No se crea `mobile` por falta de evidencia de app mobile en el repo actual.
 - Se crea documentacion operativa en `.opencode/README.md` y skills en `.opencode/skills/README.md`.
+
+## Sistema multi-agente OpenCode consolidado (`.opencode/agents`)
+- Se mantiene **solo** formato OpenCode para agentes de proyecto.
+- `orchestrator` (`mode: primary`) enruta por dominio y usa `permission.task` para delegación controlada.
+- Subagentes activos (stack aplicable): `backend`, `frontend`, `ui-ux`, `architecture`, `architect-planner`, `code-review`, `qa-testing`, `devops`, `security`, `docs-memory`, `puds`, `diagrams-modeling`.
+- No se crean por falta de evidencia: `mobile`, `ai-inference`, `ai-researcher`.
+- Skills OpenCode: `.opencode/skills/README.md` + `.opencode/skills/uml-c4-puds-diagrams/SKILL.md`.
 
 ## Setup VS Code (`.vscode/`)
 - Se agregó `.vscode/settings.json` para flujo consistente en equipo (PowerShell, format on save, exclusiones de búsqueda/archivos, pestañas persistentes).

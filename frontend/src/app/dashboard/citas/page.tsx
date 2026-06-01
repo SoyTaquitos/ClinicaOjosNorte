@@ -7,9 +7,24 @@ import { canViewClinicalModule, canWriteCitaAction, canWriteModule } from '@/lib
 import styles from '../clinic.module.css';
 
 interface PageRes<T> { count: number; results: T[]; }
-interface PacienteRow { id_paciente: number; nombres: string; apellidos: string; }
+interface PacienteRow {
+  id_paciente: number;
+  nombres: string;
+  apellidos: string;
+  documento_identidad?: string;
+  fecha_nacimiento?: string;
+}
 interface EspecialistaRow { id_especialista: number; nombre_usuario: string; especialidad: string; }
 interface CitaRow { id_cita: number; id_paciente: number; id_especialista: number; fecha_hora_inicio: string; fecha_hora_fin: string; motivo: string; estado: string; }
+interface HorarioRow {
+  id_horario: number;
+  id_especialista: number;
+  dia_semana: number; // 0=Lunes ... 6=Domingo
+  hora_inicio: string;
+  hora_fin: string;
+  duracion_slot_min: number;
+  activo: boolean;
+}
 
 const MIN_MOTIVO_LEN = 8;
 const FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -31,11 +46,14 @@ export default function CitasPage() {
   const [pacientes, setPacientes] = useState<PacienteRow[]>([]);
   const [especialistas, setEspecialistas] = useState<EspecialistaRow[]>([]);
   const [rows, setRows] = useState<CitaRow[]>([]);
+  const [horarios, setHorarios] = useState<HorarioRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
 
   const [form, setForm] = useState({ id_paciente: '', id_especialista: '', fecha: '', hora: '', motivo: '' });
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [savingCreate, setSavingCreate] = useState(false);
 
   // Modal States
   const [cancelModal, setCancelModal] = useState({ isOpen: false, citaId: null as number | null, motivo: '' });
@@ -54,6 +72,7 @@ export default function CitasPage() {
   const reschPanelRef = useRef<HTMLDivElement | null>(null);
   const cancelMotivoRef = useRef<HTMLTextAreaElement | null>(null);
   const reschFechaRef = useRef<HTMLInputElement | null>(null);
+  const createPacienteRef = useRef<HTMLSelectElement | null>(null);
 
   const cancelMotivoLen = cancelModal.motivo.trim().length;
   const cancelMotivoErr = cancelTouched && cancelMotivoLen < MIN_MOTIVO_LEN
@@ -125,6 +144,11 @@ export default function CitasPage() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (isCreateOpen) {
+          event.preventDefault();
+          setIsCreateOpen(false);
+          return;
+        }
         if (cancelModal.isOpen) {
           event.preventDefault();
           closeCancelModal();
@@ -149,7 +173,11 @@ export default function CitasPage() {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [cancelModal.isOpen, closeCancelModal, closeReschModal, reschModal.isOpen]);
+  }, [cancelModal.isOpen, closeCancelModal, closeReschModal, isCreateOpen, reschModal.isOpen]);
+
+  useEffect(() => {
+    if (isCreateOpen) createPacienteRef.current?.focus();
+  }, [isCreateOpen]);
 
   const load = useCallback(async () => {
     if (!canViewCitas) {
@@ -163,14 +191,19 @@ export default function CitasPage() {
     setLoading(true);
     setErr(null);
     try {
-      const [p, e, c] = await Promise.all([
-        api.get<PageRes<PacienteRow>>('/api/pacientes?page=1'),
+      const [p, e, c, h] = await Promise.all([
+        api.get<PageRes<PacienteRow>>('/api/pacientes?page=1&page_size=500&ordering=apellidos'),
         api.get<PageRes<EspecialistaRow>>('/api/especialistas?page=1'),
         api.get<PageRes<CitaRow>>('/api/citas?page=1'),
+        api.get<PageRes<HorarioRow>>('/api/horarios-especialista?page=1&page_size=500'),
       ]);
-      setPacientes(p.data.results ?? []);
+      const uniquePacientes = Array.from(
+        new Map((p.data.results ?? []).map((item) => [item.id_paciente, item])).values(),
+      );
+      setPacientes(uniquePacientes);
       setEspecialistas(e.data.results ?? []);
       setRows(c.data.results ?? []);
+      setHorarios((h.data.results ?? []).filter((x) => x.activo));
     } catch (error) {
       setErr(apiErr(error));
     } finally { setLoading(false); }
@@ -183,7 +216,11 @@ export default function CitasPage() {
       setErr('No tienes permiso para programar citas.');
       return;
     }
-    if (!form.id_paciente || !form.id_especialista || !form.fecha || !form.hora) return;
+    if (!form.id_paciente || !form.id_especialista || !form.fecha || !form.hora) {
+      setErr('Completa paciente, especialista, fecha y hora para programar la cita.');
+      return;
+    }
+    setSavingCreate(true);
     setErr(null);
     try {
       const iso = new Date(`${form.fecha}T${form.hora}:00`).toISOString();
@@ -194,10 +231,13 @@ export default function CitasPage() {
         motivo: form.motivo,
       });
       setOk('Cita programada.');
+      setIsCreateOpen(false);
       setForm({ id_paciente: '', id_especialista: '', fecha: '', hora: '', motivo: '' });
       await load();
     } catch (error) {
       setErr(apiErr(error));
+    } finally {
+      setSavingCreate(false);
     }
   }
 
@@ -256,13 +296,55 @@ export default function CitasPage() {
 
   const getPacienteNombre = (id: number) => {
     const p = pacientes.find(x => x.id_paciente === id);
-    return p ? `${p.nombres} ${p.apellidos}` : id;
+    return p
+      ? `${p.nombres} ${p.apellidos}${p.documento_identidad ? ` · ${p.documento_identidad}` : ''}`
+      : id;
   };
 
   const getEspecialistaNombre = (id: number) => {
     const e = especialistas.find(x => x.id_especialista === id);
     return e ? `${e.nombre_usuario} (${e.especialidad})` : id;
   };
+
+  function toMinutes(hhmm: string): number {
+    const [h, m] = hhmm.split(':').map(Number);
+    return (h * 60) + m;
+  }
+
+  function toHHMM(totalMinutes: number): string {
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  function getBackendDayIndex(dateISO: string): number | null {
+    if (!dateISO) return null;
+    const jsDay = new Date(`${dateISO}T00:00:00`).getDay(); // 0=domingo
+    return (jsDay + 6) % 7; // 0=lunes
+  }
+
+  const selectedBackendDay = getBackendDayIndex(form.fecha);
+  const horariosEspecialistaSemana = horarios
+    .filter((h) => h.id_especialista === Number(form.id_especialista))
+    .sort((a, b) => (a.dia_semana - b.dia_semana) || a.hora_inicio.localeCompare(b.hora_inicio));
+  const horariosDelEspecialista = horarios.filter(
+    (h) => h.id_especialista === Number(form.id_especialista) && selectedBackendDay !== null && h.dia_semana === selectedBackendDay,
+  );
+
+  const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+  const horasDisponibles = horariosDelEspecialista.flatMap((h) => {
+    const start = toMinutes(h.hora_inicio.slice(0, 5));
+    const end = toMinutes(h.hora_fin.slice(0, 5));
+    const step = Math.max(5, h.duracion_slot_min || 30);
+    const slots: string[] = [];
+    for (let t = start; t + step <= end; t += step) {
+      slots.push(toHHMM(t));
+    }
+    return slots;
+  });
+
+  const horasDisponiblesUnicas = Array.from(new Set(horasDisponibles)).sort();
 
   return (
     <>
@@ -278,13 +360,69 @@ export default function CitasPage() {
         <div className={styles.muted}>Permisos activos en Citas: {canCreateCitas ? 'crear ' : ''}{canReprogramCitas ? 'reprogramar ' : ''}{canCancelCitas ? 'cancelar' : ''}</div>
       )}
 
-      <div className={styles.toolbar}>
-        <div className={styles.field}><label>Paciente</label><select value={form.id_paciente} onChange={(e) => setForm((p) => ({ ...p, id_paciente: e.target.value }))}><option value="">Selecciona</option>{pacientes.map((p) => <option key={p.id_paciente} value={p.id_paciente}>{p.apellidos}, {p.nombres}</option>)}</select></div>
-        <div className={styles.field}><label>Especialista</label><select value={form.id_especialista} onChange={(e) => setForm((p) => ({ ...p, id_especialista: e.target.value }))}><option value="">Selecciona</option>{especialistas.map((e) => <option key={e.id_especialista} value={e.id_especialista}>{e.nombre_usuario} · {e.especialidad}</option>)}</select></div>
-        <div className={styles.field}><label>Fecha / Hora</label><div style={{ display: 'flex', gap: '0.5rem' }}><input type="date" value={form.fecha} onChange={(e) => setForm((p) => ({ ...p, fecha: e.target.value }))} /><input type="time" value={form.hora} onChange={(e) => setForm((p) => ({ ...p, hora: e.target.value }))} /></div></div>
-        <div className={styles.actions}><button type="button" className={styles.btnPrimary} onClick={crearCita} disabled={loading || !canCreateCitas}>Programar</button></div>
+      <div className={styles.actions} style={{ marginBottom: '1rem' }}>
+        <button type="button" className={styles.btnPrimary} onClick={() => { setIsCreateOpen(true); }} disabled={loading || !canCreateCitas}>Programar cita</button>
       </div>
-      <div className={styles.field} style={{ marginBottom: '1rem' }}><label>Motivo</label><input value={form.motivo} onChange={(e) => setForm((p) => ({ ...p, motivo: e.target.value }))} /></div>
+
+      {isCreateOpen && (
+        <div className={styles.modalBackdrop} onClick={() => setIsCreateOpen(false)}>
+          <div className={styles.modalPanel} role="dialog" aria-modal="true" aria-labelledby="create-cita-title" onClick={(e) => e.stopPropagation()}>
+            <h2 id="create-cita-title" className={styles.modalTitle}>Programar cita</h2>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void crearCita();
+              }}
+            >
+              <div className={styles.grid2}>
+                <div className={styles.field}><label>Paciente</label><select ref={createPacienteRef} value={form.id_paciente} onChange={(e) => setForm((p) => ({ ...p, id_paciente: e.target.value }))}><option value="">Selecciona</option>{pacientes.map((p) => <option key={p.id_paciente} value={p.id_paciente}>{p.apellidos}, {p.nombres} · {p.documento_identidad || `ID ${p.id_paciente}`}{p.fecha_nacimiento ? ` · Nac. ${p.fecha_nacimiento}` : ''}</option>)}</select></div>
+                <div className={styles.field}><label>Especialista</label><select value={form.id_especialista} onChange={(e) => setForm((p) => ({ ...p, id_especialista: e.target.value }))}><option value="">Selecciona</option>{especialistas.map((e) => <option key={e.id_especialista} value={e.id_especialista}>{e.nombre_usuario} · {e.especialidad}</option>)}</select></div>
+                <div className={styles.field}><label>Fecha</label><input type="date" value={form.fecha} onChange={(e) => setForm((p) => ({ ...p, fecha: e.target.value }))} /></div>
+                <div className={styles.field}>
+                  <label>Hora</label>
+                  <input
+                    type="time"
+                    list="horas-disponibles-especialista"
+                    value={form.hora}
+                    onChange={(e) => setForm((p) => ({ ...p, hora: e.target.value }))}
+                  />
+                  {form.id_especialista && form.fecha && horariosDelEspecialista.length === 0 && (
+                    <small className={styles.fieldErr}>El especialista no tiene horario configurado para ese día.</small>
+                  )}
+                  {form.id_especialista && !form.fecha && horariosEspecialistaSemana.length > 0 && (
+                    <small className={styles.muted}>Selecciona una fecha para ver horas disponibles ese día.</small>
+                  )}
+                  {horasDisponiblesUnicas.length > 0 && (
+                    <small className={styles.muted}>
+                      Horarios sugeridos: {horasDisponiblesUnicas.slice(0, 8).join(', ')}{horasDisponiblesUnicas.length > 8 ? '…' : ''}
+                    </small>
+                  )}
+                  <datalist id="horas-disponibles-especialista">
+                    {horasDisponiblesUnicas.map((h) => (
+                      <option key={h} value={h} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+              {form.id_especialista && horariosEspecialistaSemana.length > 0 && (
+                <div className={styles.field} style={{ marginTop: '0.5rem' }}>
+                  <label>Horarios del especialista</label>
+                  <small className={styles.muted}>
+                    {horariosEspecialistaSemana
+                      .map((h) => `${diasSemana[h.dia_semana] ?? h.dia_semana}: ${h.hora_inicio.slice(0, 5)}-${h.hora_fin.slice(0, 5)} (${h.duracion_slot_min} min)`)
+                      .join(' · ')}
+                  </small>
+                </div>
+              )}
+              <div className={styles.field} style={{ marginTop: '1rem' }}><label>Motivo</label><input value={form.motivo} onChange={(e) => setForm((p) => ({ ...p, motivo: e.target.value }))} /></div>
+              <div className={styles.formActions}>
+                <button type="button" className={styles.btn} onClick={() => { setIsCreateOpen(false); }} disabled={savingCreate}>Cancelar</button>
+                <button type="submit" className={styles.btnPrimary} disabled={savingCreate || loading || !canCreateCitas}>{savingCreate ? 'Guardando...' : 'Guardar cita'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>

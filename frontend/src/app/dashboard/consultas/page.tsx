@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '@/lib/api';
 import { useDashboardUser } from '@/contexts/DashboardUserContext';
 import { canViewClinicalModule, canWriteModule } from '@/lib/authorization';
@@ -26,8 +26,11 @@ export default function ConsultasPage() {
   const [citas, setCitas] = useState<CitaRow[]>([]);
   const [rows, setRows] = useState<ConsultaRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+  const citaSelectRef = useRef<HTMLSelectElement | null>(null);
 
   const [form, setForm] = useState({
     id_cita: '', id_paciente: '', id_especialista: '', motivo_consulta: '', anamnesis: '', hallazgos: '', diagnostico: '', plan_tratamiento: '',
@@ -40,6 +43,12 @@ export default function ConsultasPage() {
 
   const canManageConsultas = canWriteModule(me, 'consultas', permissionCodes);
   const canViewConsultas = canViewClinicalModule(me, 'consultas', permissionCodes);
+  const canSubmitConsulta =
+    !!form.id_cita &&
+    !!form.id_paciente &&
+    !!form.id_especialista &&
+    form.diagnostico.trim().length > 0 &&
+    form.plan_tratamiento.trim().length > 0;
 
   const load = useCallback(async () => {
     if (!canViewConsultas) {
@@ -65,6 +74,20 @@ export default function ConsultasPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (!isCreateOpen) return;
+    citaSelectRef.current?.focus();
+  }, [isCreateOpen]);
+
+  useEffect(() => {
+    if (!isCreateOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsCreateOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isCreateOpen]);
+
   function onPickCita(id: string) {
     setForm((p) => ({ ...p, id_cita: id }));
     const c = citas.find((x) => String(x.id_cita) === id);
@@ -78,7 +101,19 @@ export default function ConsultasPage() {
       setErr('No tienes permiso para registrar consultas.');
       return;
     }
-    if (!form.id_cita || !form.id_paciente || !form.id_especialista) return;
+    if (!form.id_cita || !form.id_paciente || !form.id_especialista) {
+      setErr('Selecciona una cita válida para autocompletar paciente y especialista.');
+      return;
+    }
+    if (!form.diagnostico.trim()) {
+      setErr('El diagnóstico principal es obligatorio.');
+      return;
+    }
+    if (!form.plan_tratamiento.trim()) {
+      setErr('El plan de tratamiento es obligatorio.');
+      return;
+    }
+    setSaving(true);
     setErr(null);
     setOk(null);
     try {
@@ -113,6 +148,7 @@ export default function ConsultasPage() {
         plan_tratamiento: form.plan_tratamiento,
       });
       setOk('Consulta registrada y cita marcada como ATENDIDA.');
+      setIsCreateOpen(false);
       setForm({
         id_cita: '', id_paciente: '', id_especialista: '', motivo_consulta: '', anamnesis: '', hallazgos: '', diagnostico: '', plan_tratamiento: '',
         peso_kg: '', talla_cm: '', temperatura_c: '', presion_arterial: '', frecuencia_cardiaca: '', frecuencia_respiratoria: '', saturacion_oxigeno: '', triaje_observaciones: '',
@@ -124,6 +160,8 @@ export default function ConsultasPage() {
       await load();
     } catch (error) {
       setErr(apiErr(error));
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -137,21 +175,34 @@ export default function ConsultasPage() {
       {ok && <div className={styles.ok}>{ok}</div>}
       {!canManageConsultas && <div className={styles.err}>Tu rol es de solo lectura en Consultas. Puedes revisar historial, pero no registrar nuevas consultas.</div>}
 
-      <div className={styles.toolbar}>
-        <div className={styles.field}>
-          <label>Cita</label>
-          <select value={form.id_cita} onChange={(e) => onPickCita(e.target.value)}>
-            <option value="">Selecciona cita</option>
-            {citas.map((c) => <option key={c.id_cita} value={c.id_cita}>Cita {c.id_cita} · Paciente {c.id_paciente} · Estado {c.estado}</option>)}
-          </select>
-        </div>
-        <div className={styles.field}><label>Paciente ID</label><input value={form.id_paciente} onChange={(e) => setForm((p) => ({ ...p, id_paciente: e.target.value }))} /></div>
-        <div className={styles.field}><label>Especialista ID</label><input value={form.id_especialista} onChange={(e) => setForm((p) => ({ ...p, id_especialista: e.target.value }))} /></div>
-        <div className={styles.actions}><button type="button" className={styles.btnPrimary} onClick={createConsulta} disabled={loading || !canManageConsultas}>Registrar consulta</button></div>
+      <div className={styles.actions} style={{ marginBottom: '1rem' }}>
+        <button type="button" className={styles.btnPrimary} onClick={() => setIsCreateOpen(true)} disabled={loading || !canManageConsultas}>Registrar consulta</button>
       </div>
 
-      <h3 className={styles.subtitle}>Triaje y presión intraocular</h3>
-      <div className={styles.grid2}>
+      {isCreateOpen && (
+        <div className={styles.modalBackdrop} role="presentation" onClick={() => setIsCreateOpen(false)}>
+          <div className={styles.modalPanel} role="dialog" aria-modal="true" aria-labelledby="create-consulta-title" onClick={(e) => e.stopPropagation()}>
+            <h3 id="create-consulta-title" className={styles.modalTitle}>Registrar consulta médica</h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void createConsulta();
+              }}
+            >
+              <div className={styles.grid2}>
+                <div className={styles.field}>
+                  <label>Cita</label>
+                  <select ref={citaSelectRef} value={form.id_cita} onChange={(e) => onPickCita(e.target.value)}>
+                    <option value="">Selecciona cita</option>
+                    {citas.map((c) => <option key={c.id_cita} value={c.id_cita}>Cita {c.id_cita} · Paciente {c.id_paciente} · Estado {c.estado}</option>)}
+                  </select>
+                </div>
+                <div className={styles.field}><label>Paciente ID</label><input value={form.id_paciente} onChange={(e) => setForm((p) => ({ ...p, id_paciente: e.target.value }))} /></div>
+                <div className={styles.field}><label>Médico (ID profesional)</label><input value={form.id_especialista} onChange={(e) => setForm((p) => ({ ...p, id_especialista: e.target.value }))} /></div>
+              </div>
+
+              <h3 className={styles.subtitle}>Triaje y presión intraocular</h3>
+              <div className={styles.grid2}>
         <div className={styles.field}><label>Peso (kg)</label><input type="number" step="0.01" value={form.peso_kg} onChange={(e) => setForm((p) => ({ ...p, peso_kg: e.target.value }))} /></div>
         <div className={styles.field}><label>Talla (cm)</label><input type="number" step="0.01" value={form.talla_cm} onChange={(e) => setForm((p) => ({ ...p, talla_cm: e.target.value }))} /></div>
         <div className={styles.field}><label>Temperatura (°C)</label><input type="number" step="0.1" value={form.temperatura_c} onChange={(e) => setForm((p) => ({ ...p, temperatura_c: e.target.value }))} /></div>
@@ -162,10 +213,10 @@ export default function ConsultasPage() {
         <div className={styles.field}><label>PIO OD (mmHg)</label><input type="number" step="0.1" value={form.presion_intraocular_od} onChange={(e) => setForm((p) => ({ ...p, presion_intraocular_od: e.target.value }))} /></div>
         <div className={styles.field}><label>PIO OI (mmHg)</label><input type="number" step="0.1" value={form.presion_intraocular_oi} onChange={(e) => setForm((p) => ({ ...p, presion_intraocular_oi: e.target.value }))} /></div>
         <div className={styles.field}><label>Observaciones triaje</label><textarea value={form.triaje_observaciones} onChange={(e) => setForm((p) => ({ ...p, triaje_observaciones: e.target.value }))} /></div>
-      </div>
+              </div>
 
-      <h3 className={styles.subtitle}>Examen de refracción</h3>
-      <div className={styles.grid2}>
+              <h3 className={styles.subtitle}>Examen de refracción</h3>
+              <div className={styles.grid2}>
         <div className={styles.field}><label>OD Esfera</label><input type="number" step="0.25" value={form.refraccion_od_esfera} onChange={(e) => setForm((p) => ({ ...p, refraccion_od_esfera: e.target.value }))} /></div>
         <div className={styles.field}><label>OD Cilindro</label><input type="number" step="0.25" value={form.refraccion_od_cilindro} onChange={(e) => setForm((p) => ({ ...p, refraccion_od_cilindro: e.target.value }))} /></div>
         <div className={styles.field}><label>OD Eje</label><input type="number" value={form.refraccion_od_eje} onChange={(e) => setForm((p) => ({ ...p, refraccion_od_eje: e.target.value }))} /></div>
@@ -174,10 +225,10 @@ export default function ConsultasPage() {
         <div className={styles.field}><label>OI Eje</label><input type="number" value={form.refraccion_oi_eje} onChange={(e) => setForm((p) => ({ ...p, refraccion_oi_eje: e.target.value }))} /></div>
         <div className={styles.field}><label>Agudeza visual SC</label><input placeholder="20/40" value={form.agudeza_visual_sc} onChange={(e) => setForm((p) => ({ ...p, agudeza_visual_sc: e.target.value }))} /></div>
         <div className={styles.field}><label>Agudeza visual CC</label><input placeholder="20/20" value={form.agudeza_visual_cc} onChange={(e) => setForm((p) => ({ ...p, agudeza_visual_cc: e.target.value }))} /></div>
-      </div>
+              </div>
 
-      <h3 className={styles.subtitle}>Diagnóstico y plan</h3>
-      <div className={styles.grid2}>
+              <h3 className={styles.subtitle}>Diagnóstico y plan</h3>
+              <div className={styles.grid2}>
         <div className={styles.field}><label>Motivo consulta</label><textarea value={form.motivo_consulta} onChange={(e) => setForm((p) => ({ ...p, motivo_consulta: e.target.value }))} /></div>
         <div className={styles.field}><label>Anamnesis</label><textarea value={form.anamnesis} onChange={(e) => setForm((p) => ({ ...p, anamnesis: e.target.value }))} /></div>
         <div className={styles.field}><label>Hallazgos</label><textarea value={form.hallazgos} onChange={(e) => setForm((p) => ({ ...p, hallazgos: e.target.value }))} /></div>
@@ -185,7 +236,16 @@ export default function ConsultasPage() {
         <div className={styles.field}><label>Diagnóstico secundario</label><textarea value={form.diagnostico_secundario} onChange={(e) => setForm((p) => ({ ...p, diagnostico_secundario: e.target.value }))} /></div>
         <div className={styles.field}><label>Código CIE10</label><input value={form.codigo_cie10} onChange={(e) => setForm((p) => ({ ...p, codigo_cie10: e.target.value }))} /></div>
         <div className={styles.field}><label>Plan de tratamiento</label><textarea value={form.plan_tratamiento} onChange={(e) => setForm((p) => ({ ...p, plan_tratamiento: e.target.value }))} /></div>
-      </div>
+              </div>
+
+              <div className={styles.formActions}>
+                <button type="button" className={styles.btnGhost} onClick={() => setIsCreateOpen(false)} disabled={saving}>Cancelar</button>
+                <button type="submit" className={styles.btnPrimary} disabled={loading || saving || !canManageConsultas || !canSubmitConsulta}>Guardar consulta</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className={styles.tableWrap} style={{ marginTop: '1rem' }}>
         <table className={styles.table}>

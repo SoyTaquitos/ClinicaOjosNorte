@@ -17,6 +17,7 @@ from django.utils import timezone
 
 from apps.citas.models import Cita, EstadoCita, HorarioEspecialista
 from apps.especialistas.models import Especialista
+from apps.medicos.models import Medico
 from apps.pacientes.models import Paciente
 from apps.users.models import EstadoUsuario, TipoUsuario, Usuario
 
@@ -215,6 +216,8 @@ PACIENTES_BASE = [
 
 PACIENTES_GENERADOS_OBJETIVO = 60
 
+DEPARTAMENTOS_DOC = ['SC', 'LP', 'CB', 'OR', 'PT', 'TJ', 'CH', 'BN', 'PD']
+
 
 def _next_business_day_start(hour=10, minute=0):
     base = timezone.localtime(timezone.now())
@@ -276,6 +279,45 @@ def run():
     creados += int(created)
     existentes += int(not created)
 
+    # 2.1) Médicos con atributos propios
+    medicos_seed = [
+        {
+            'username': 'dr.carlos',
+            'matricula': 'MED-REG-0001',
+            'especialidad_principal': 'Oftalmología clínica',
+            'subespecialidad': 'Segmento anterior',
+            'anios_experiencia': 12,
+        },
+        {
+            'username': 'dr.luis',
+            'matricula': 'MED-REG-0002',
+            'especialidad_principal': 'Glaucoma',
+            'subespecialidad': 'Manejo quirúrgico',
+            'anios_experiencia': 9,
+        },
+        {
+            'username': 'dr.renzo',
+            'matricula': 'MED-REG-0003',
+            'especialidad_principal': 'Oftalmología pediátrica',
+            'subespecialidad': 'Estrabismo',
+            'anios_experiencia': 8,
+        },
+    ]
+
+    for data in medicos_seed:
+        medico, created = Medico.objects.get_or_create(
+            matricula=data['matricula'],
+            defaults={
+                'id_usuario': usuarios[data['username']],
+                'especialidad_principal': data['especialidad_principal'],
+                'subespecialidad': data['subespecialidad'],
+                'anios_experiencia': data['anios_experiencia'],
+                'activo': True,
+            },
+        )
+        creados += int(created)
+        existentes += int(not created)
+
     especialista_3, created = Especialista.objects.get_or_create(
         registro_profesional='REG-OFT-0003',
         defaults={
@@ -331,30 +373,101 @@ def run():
         existentes += int(not created)
         pacientes.append(paciente)
 
-    # 3b) Pacientes generados para volumen de reportes (idempotente)
-    nombres = ['Ana', 'Bruno', 'Carla', 'Diego', 'Elena', 'Fabian', 'Gloria', 'Hugo', 'Ines', 'Javier']
-    apellidos = ['Lozano', 'Mora', 'Paredes', 'Vargas', 'Quiroga', 'Soto', 'Roca', 'Molina', 'Paz', 'Gomez']
-    sexo_cycle = ['F', 'M']
+    # 3b) Pacientes generados para volumen de reportes (idempotente y con identidad variada)
+    nombres = [
+        'Ana', 'Bruno', 'Carla', 'Diego', 'Elena', 'Fabian', 'Gloria', 'Hugo', 'Ines', 'Javier',
+        'Karla', 'Luis', 'Marta', 'Nicolas', 'Olga', 'Pablo', 'Rocio', 'Samuel', 'Tatiana', 'Ulises',
+        'Valentina', 'William', 'Ximena', 'Yamil', 'Zoe', 'Adriana', 'Belen', 'Ciro', 'Danna', 'Elias',
+        'Fiorella', 'Gerardo', 'Helena', 'Ismael', 'Jimena', 'Kevin', 'Lorena', 'Mateo', 'Nadia', 'Oscar',
+        'Patricia', 'Raul', 'Silvana', 'Tobias', 'Uriel', 'Vanessa', 'Walter', 'Yasmin', 'Zulema', 'Noe',
+    ]
+    apellidos = [
+        'Lozano', 'Mora', 'Paredes', 'Vargas', 'Quiroga', 'Soto', 'Roca', 'Molina', 'Paz', 'Gomez',
+        'Arce', 'Cespedes', 'Delgado', 'Escobar', 'Flores', 'Garcia', 'Herbas', 'Iriarte', 'Justiniano',
+        'Ledezma', 'Mamani', 'Navia', 'Orellana', 'Peralta', 'Quintanilla', 'Ribera', 'Saavedra',
+        'Torrico', 'Ugarte', 'Valdez', 'Yujra', 'Zamora', 'Aponte', 'Borda', 'Calvimontes', 'Duran',
+        'Echazu', 'Franco', 'Gandarillas', 'Hinojosa', 'Ibanez', 'Jaldin', 'Klaric', 'Lanza', 'Monasterio',
+        'Nogales', 'Ocampo', 'Prado', 'Rivero', 'Suarez',
+    ]
+    sexo_cycle = ['F', 'M', 'O']
 
-    # Genera desde 2000001 para no colisionar con dataset base.
-    for idx in range(1, PACIENTES_GENERADOS_OBJETIVO + 1):
-        doc = f'CI-200{idx:04d}'
-        defaults = {
-            'nombres': nombres[idx % len(nombres)],
-            'apellidos': f"{apellidos[idx % len(apellidos)]} {apellidos[(idx + 3) % len(apellidos)]}",
-            'fecha_nacimiento': datetime(1970 + (idx % 30), ((idx % 12) + 1), ((idx % 28) + 1)).date(),
-            'sexo': sexo_cycle[idx % 2],
-            'telefono': f'73{idx:06d}'[:8],
-            'email': f'paciente{idx}@example.com',
-            'direccion': f'Zona demo #{idx}',
-            'activo': True,
-        }
-        paciente, created = Paciente.objects.get_or_create(
-            documento_identidad=doc,
-            defaults=defaults,
+    base_docs = {p['documento_identidad'] for p in PACIENTES_BASE}
+    # Tomar como "generados" todo paciente que no pertenece al bloque base clínico fijo.
+    generated_qs = Paciente.objects.exclude(documento_identidad__in=base_docs).order_by('id_paciente')
+    generated = list(generated_qs)
+
+    # Si faltan registros demo, crearlos primero para luego normalizar todo el bloque.
+    missing = max(0, PACIENTES_GENERADOS_OBJETIVO - len(generated))
+    for _ in range(missing):
+        p = Paciente.objects.create(
+            nombres='Temporal',
+            apellidos='Temporal Demo',
+            documento_identidad=f'TMP-{timezone.now().timestamp()}',
+            fecha_nacimiento=datetime(1990, 1, 1).date(),
+            sexo='F',
+            telefono='70000000',
+            email='paciente.tmp@example.com',
+            direccion='Temporal',
+            activo=True,
         )
-        creados += int(created)
-        existentes += int(not created)
+        generated.append(p)
+        creados += 1
+
+    # Si hay más de los esperados, mantener los más recientes para evitar expansión infinita legacy.
+    if len(generated) > PACIENTES_GENERADOS_OBJETIVO:
+        to_keep = generated[:PACIENTES_GENERADOS_OBJETIVO]
+        to_delete = generated[PACIENTES_GENERADOS_OBJETIVO:]
+        for p in to_delete:
+            p.delete()
+        existentes += len(to_keep)
+        generated = to_keep
+
+    # Precalcular pares ordenados únicos para evitar apellidos/nombres repetidos.
+    apellido_pairs = [(a, b) for a in apellidos for b in apellidos if a != b]
+    nombre_pairs = [(a, b) for a in nombres for b in nombres if a != b]
+
+    # Normalizar TODOS los pacientes demo generados con combinaciones no repetidas.
+    for idx, paciente in enumerate(generated, start=1):
+        dep = DEPARTAMENTOS_DOC[(idx * 5 + 1) % len(DEPARTAMENTOS_DOC)]
+        seq = 2_000_000 + (idx * 97)
+        check = (idx * 9 + 3) % 10
+        doc = f'CI-{dep}-{seq}{check}'
+
+        birth_year = 1958 + ((idx * 7) % 45)
+        birth_month = ((idx * 11) % 12) + 1
+        birth_day = ((idx * 13) % 28) + 1
+
+        # Forzar mayor diversidad visible: paterno rota casi sin repetición en primeras filas.
+        n1, n2 = nombre_pairs[((idx - 1) * 53) % len(nombre_pairs)]
+        a1 = apellidos[((idx - 1) * 7) % len(apellidos)]
+        a2 = apellidos[((idx - 1) * 19 + 3) % len(apellidos)]
+        if a1 == a2:
+            a2 = apellidos[((idx - 1) * 19 + 4) % len(apellidos)]
+
+        paciente.nombres = f"{n1} {n2}"
+        paciente.apellidos = f"{a1} {a2}"
+        paciente.documento_identidad = doc
+        paciente.fecha_nacimiento = datetime(birth_year, birth_month, birth_day).date()
+        paciente.sexo = sexo_cycle[idx % len(sexo_cycle)]
+        paciente.telefono = f"7{(2300000 + idx * 173) % 10000000:07d}"
+        paciente.email = f"paciente.{dep.lower()}.{idx:03d}@example.com"
+        paciente.direccion = f"Zona clínica {dep} · manzano {(idx * 17) % 90 + 10}"
+        paciente.activo = True
+        paciente.save(
+            update_fields=[
+                'nombres',
+                'apellidos',
+                'documento_identidad',
+                'fecha_nacimiento',
+                'sexo',
+                'telefono',
+                'email',
+                'direccion',
+                'activo',
+                'fecha_actualizacion',
+            ]
+        )
+        existentes += 1
         pacientes.append(paciente)
 
     # 4) Horarios
