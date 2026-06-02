@@ -6,15 +6,14 @@ import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { canViewClinicalModule, canWriteModule } from "@/lib/authorization";
 import styles from "../clinic.module.css";
 
-interface UserLite {
-  id: number;
-  nombre_completo?: string;
-  username?: string;
-  tipo_usuario?: string;
+interface MedicoOption {
+  id_medico: number;
+  nombre_usuario: string;
 }
 interface EspecialistaRow {
   id_especialista: number;
-  id_usuario: number;
+  id_medico?: number;
+  id_usuario?: number;
   nombre_usuario: string;
   especialidad: string;
   registro_profesional: string;
@@ -70,7 +69,7 @@ function apiErr(e: unknown): string {
 
 export default function EspecialistasPage() {
   const { me, permissionCodes } = useDashboardUser();
-  const [users, setUsers] = useState<UserLite[]>([]);
+  const [medicos, setMedicos] = useState<MedicoOption[]>([]);
   const [rows, setRows] = useState<EspecialistaRow[]>([]);
   const [horarios, setHorarios] = useState<HorarioRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +77,7 @@ export default function EspecialistasPage() {
   const [ok, setOk] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    id_usuario: "",
+    id_medico: "",
     especialidad: "",
     registro_profesional: "",
     activo: true,
@@ -128,7 +127,7 @@ export default function EspecialistasPage() {
     permissionCodes,
   );
   const canSubmitEspecialista =
-    !!form.id_usuario &&
+    !!form.id_medico &&
     form.especialidad.trim().length > 0 &&
     form.registro_profesional.trim().length > 0;
   const canSubmitHorario =
@@ -170,7 +169,7 @@ export default function EspecialistasPage() {
 
   const load = useCallback(async () => {
     if (!canViewEspecialistas) {
-      setUsers([]);
+      setMedicos([]);
       setRows([]);
       setHorarios([]);
       setErr("No tienes permiso para ver Especialistas y Horarios.");
@@ -181,11 +180,11 @@ export default function EspecialistasPage() {
     setErr(null);
     try {
       const [u, e, h] = await Promise.all([
-        api.get<PageRes<UserLite>>("/api/users?page=1"),
+        api.get<PageRes<MedicoOption>>("/api/medicos?page=1"),
         api.get<PageRes<EspecialistaRow>>("/api/especialistas?page=1"),
         api.get<PageRes<HorarioRow>>("/api/horarios-especialista?page=1"),
       ]);
-      setUsers(u.data.results ?? []);
+      setMedicos(u.data.results ?? []);
       setRows(e.data.results ?? []);
       setHorarios(h.data.results ?? []);
     } catch (error) {
@@ -204,8 +203,8 @@ export default function EspecialistasPage() {
       setErr("No tienes permiso para crear especialistas.");
       return;
     }
-    if (!form.id_usuario) {
-      setErr("Selecciona un usuario para crear el especialista.");
+    if (!form.id_medico) {
+      setErr("Selecciona un médico para crear el especialista.");
       return;
     }
     if (!form.especialidad.trim()) {
@@ -221,7 +220,7 @@ export default function EspecialistasPage() {
     setOk(null);
     try {
       await api.post("/api/especialistas", {
-        id_usuario: Number(form.id_usuario),
+        id_medico: Number(form.id_medico),
         especialidad: form.especialidad.trim(),
         registro_profesional: form.registro_profesional.trim(),
         activo: form.activo,
@@ -229,7 +228,7 @@ export default function EspecialistasPage() {
       setOk("Especialista creado.");
       setIsCreateEspecialistaOpen(false);
       setForm({
-        id_usuario: "",
+        id_medico: "",
         especialidad: "",
         registro_profesional: "",
         activo: true,
@@ -495,7 +494,7 @@ export default function EspecialistasPage() {
               rows.map((r) => (
                 <tr key={r.id_especialista}>
                   <td>{r.id_especialista}</td>
-                  <td>{r.nombre_usuario || r.id_usuario}</td>
+                  <td>{r.nombre_usuario || (r.id_usuario ?? r.id_medico ?? "—")}</td>
                   <td>{r.especialidad}</td>
                   <td>{r.registro_profesional}</td>
                   <td>
@@ -634,19 +633,19 @@ export default function EspecialistasPage() {
             >
               <div className={styles.grid2}>
                 <div className={styles.field}>
-                  <label htmlFor="create-u">Usuario</label>
+                  <label htmlFor="create-u">Médico</label>
                   <select
                     ref={especialistaFirstFieldRef}
                     id="create-u"
-                    value={form.id_usuario}
+                    value={form.id_medico}
                     onChange={(e) =>
-                      setForm((p) => ({ ...p, id_usuario: e.target.value }))
+                      setForm((p) => ({ ...p, id_medico: e.target.value }))
                     }
                   >
-                    <option value="">Selecciona usuario</option>
-                    {users.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.nombre_completo || u.username || `Usuario ${u.id}`}
+                    <option value="">Selecciona médico</option>
+                    {medicos.map((m) => (
+                      <option key={m.id_medico} value={m.id_medico}>
+                        {m.nombre_usuario || `Médico ${m.id_medico}`}
                       </option>
                     ))}
                   </select>

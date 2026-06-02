@@ -1,1 +1,1 @@
-"""Alias lógico de `apps.users`."""
+# apps/users

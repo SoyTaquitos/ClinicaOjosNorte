@@ -57,22 +57,34 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'apps.core',      # Utilidades transversales, health check, permissions
-    'apps.users',     # Usuario (AUTH_USER_MODEL)
-    'apps.security',  # Bloqueo login, config intentos, tokens recuperación (tablas existentes)
-    'apps.auth',      # Login, logout, JWT, perfil sesión, reset password (sin modelos propios)
+    'apps.Usuarios.users',     # Usuario (AUTH_USER_MODEL)
+    'apps.Usuarios.security',  # Bloqueo login, config intentos, tokens recuperación (tablas existentes)
+    'apps.Usuarios.auth',      # Login, logout, JWT, perfil sesión, reset password (sin modelos propios)
     'apps.Usuarios.roles',     # Rol, UsuarioRol, RolPermiso (paquete Usuarios)
-    'apps.permisos',  # Permiso (granular por módulo)
+    'apps.Usuarios.permisos',  # Permiso (granular por módulo)
     'apps.bitacora',  # Registro de auditoría del sistema
-    'apps.pacientes',
-    'apps.especialistas',
-    'apps.medicos',
-    'apps.citas',
-    'apps.consultas',
-    'apps.dashboard',
-    'apps.reportes',
+    'apps.GestionClinica.pacientes',
+    'apps.GestionClinica.especialistas',
+    'apps.GestionClinica.medicos',
+    'apps.GestionClinica.citas',
+    'apps.GestionClinica.consultas',
+    'apps.ReportesEstadisticas.dashboard',
+    'apps.ReportesEstadisticas.reportes',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# Mantiene estado de migraciones en rutas físicas nuevas tras reordenamiento
+MIGRATION_MODULES = {
+    'users': 'apps.Usuarios.users.migrations',
+    'oftalmologia_security': 'apps.Usuarios.security.migrations',
+    'permisos': 'apps.Usuarios.permisos.migrations',
+    'pacientes': 'apps.GestionClinica.pacientes.migrations',
+    'especialistas': 'apps.GestionClinica.especialistas.migrations',
+    'medicos': 'apps.GestionClinica.medicos.migrations',
+    'citas': 'apps.GestionClinica.citas.migrations',
+    'consultas': 'apps.GestionClinica.consultas.migrations',
+}
 
 # =============================================================================
 # MIDDLEWARE
@@ -143,7 +155,7 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
         'OPTIONS': {'min_length': 8},
     },
-    {'NAME': 'apps.users.password_validators.AlphanumericComplexityValidator'},
+    {'NAME': 'apps.Usuarios.users.password_validators.AlphanumericComplexityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]

@@ -3,6 +3,8 @@
 Lista priorizada de los siguientes pasos a realizar en el proyecto Oftalmología SI1.
 
 ## Inmediato
+- [x] Ajustar flujo frontend `usuario -> medico -> especialista`: especialistas se crean desde `id_medico` y módulo médicos elimina campos `especialidad_principal/subespecialidad` en UI.
+- [x] Corregir imports backend tras reestructuración (`backend.apps.*` -> `apps.*`) y validar en Docker (`check`, `showmigrations`, `makemigrations --check --dry-run`, `seed --only admin`).
 - [x] Consolidar sistema multi-agente en **OpenCode** (`.opencode/agents/`) y retirar configuración paralela Cursor para evitar deriva.
 - [x] Crear skill de diagramas PUDS/UML/C4 en `.opencode/skills/uml-c4-puds-diagrams/SKILL.md`.
 - [x] Configurar sistema multi-agente OpenCode oficial en `.opencode/agents/` con `orchestrator` + subagentes por dominio.

@@ -13,11 +13,11 @@ from datetime import timedelta
 from django.db import transaction
 from django.utils import timezone
 
-from apps.citas.models import Cita, EstadoCita
-from apps.consultas.models import ConsultaMedica
-from apps.especialistas.models import Especialista
-from apps.pacientes.models import Paciente
-from apps.users.models import TipoUsuario, Usuario
+from apps.GestionClinica.citas.models import Cita, EstadoCita
+from apps.GestionClinica.consultas.models import ConsultaMedica
+from apps.GestionClinica.especialistas.models import Especialista
+from apps.GestionClinica.pacientes.models import Paciente
+from apps.Usuarios.users.models import TipoUsuario, Usuario
 
 
 CONSULTAS_OBJETIVO = 360

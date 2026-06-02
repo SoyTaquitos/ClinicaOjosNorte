@@ -7,9 +7,9 @@ Puebla asignaciones RBAC base para entorno dev:
 Idempotente: usa get_or_create.
 """
 
-from apps.permisos.models import Permiso
-from apps.roles.models import Rol, RolPermiso, UsuarioRol
-from apps.users.models import Usuario
+from apps.Usuarios.permisos.models import Permiso
+from apps.Usuarios.roles.models import Rol, RolPermiso, UsuarioRol
+from apps.Usuarios.users.models import Usuario
 
 
 ROLE_PERMISSION_CODES = {
@@ -52,13 +52,12 @@ ROLE_PERMISSION_CODES = {
         'reportes.ver',
     ],
     'Médico Clínico': [
-        'pacientes.listar',
+        'pacientes.listar', 'pacientes.crear',
         'especialistas.listar',
         'medicos.listar',
-        'citas.listar',
+        'citas.listar', 'citas.crear',
         'agenda.ver',
         'consultas.listar', 'consultas.crear',
-        'reportes.ver',
     ],
     'Especialista Clínico': [
         'pacientes.listar',
@@ -74,6 +73,9 @@ ROLE_PERMISSION_CODES = {
 USER_ROLE_NAMES = {
     'admin': ['Administrador del Sistema'],
     'dr.carlos': ['Médico Clínico'],
+    'dr.luis': ['Médico Clínico'],
+    'dr.renzo': ['Médico Clínico'],
+    'ceto': ['Médico Clínico'],
     'dra.andrea': ['Especialista Clínico'],
 }
 

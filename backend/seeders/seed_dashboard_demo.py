@@ -17,10 +17,10 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.citas.models import Cita, EstadoCita
-from apps.especialistas.models import Especialista
-from apps.pacientes.models import Paciente
-from apps.users.models import Usuario
+from apps.GestionClinica.citas.models import Cita, EstadoCita
+from apps.GestionClinica.especialistas.models import Especialista
+from apps.GestionClinica.pacientes.models import Paciente
+from apps.Usuarios.users.models import Usuario
 
 
 ACTIVE_SLOT_STATES = (EstadoCita.PROGRAMADA, EstadoCita.CONFIRMADA)

@@ -4,6 +4,8 @@
 **Oftalmología SI1 — Clínica de Ojos Norte.** Backend Django + frontend Next.js (panel web IAM y auditoría). Modelo SI1: paciente = datos sin login; sin app móvil; sin registro público.
 
 ## Backend
+- **Fix imports por reestructuración de paquetes (2026-06-01):** se reemplazaron imports inválidos `from backend.apps...` por `from apps...` en todo `backend/`, alineando dominios `apps.Usuarios.*`, `apps.GestionClinica.*`, `apps.ReportesEstadisticas.*` sin cambios de lógica.
+- **Validación en Docker (2026-06-01):** `manage.py check` OK, `showmigrations` sin pendientes, `makemigrations --check --dry-run` sin cambios detectados, `seed --only admin` idempotente (0 creados, 1 existente).
 - **Bootstrap automático en contenedor backend (2026-05-31):** `entrypoint.sh` ahora ejecuta automáticamente `migrate` y `seed` al iniciar el contenedor (controlado por envs `AUTO_MIGRATE` y `AUTO_SEED`, ambos `true` por defecto en `docker-compose.yml`).
 - **Paquetización lógica por dominio CU (2026-05-30):** se crea estructura de paquetes lógicos en `backend/apps`:
   - `Usuarios/` (CU1-CU6)
@@ -43,6 +45,10 @@
 - **Suite de pruebas inicial (backend):** se agregaron pruebas automáticas para política de contraseña, creación de usuario con validación de password y endpoint `/api/auth/permissions` (roles+permisos efectivos).
 
 ## Frontend (Next.js)
+- **Flujo clínico actualizado `usuario -> medico -> especialista` (2026-06-01):**
+  - `/dashboard/medicos`: se removieron en UI y payloads los campos `especialidad_principal` y `subespecialidad` en crear/editar/listar; se mantiene `usuario`, `matricula`, `anios_experiencia`, `activo`.
+  - `/dashboard/especialistas`: creación ahora toma fuente desde `GET /api/medicos?page=1` (opciones `id_medico`, `nombre_usuario`) y `POST /api/especialistas` envía `id_medico`.
+  - Tabla de especialistas mantiene nombre legible usando `nombre_usuario` y fallback compatible con `id_usuario`/`id_medico` cuando aplique.
 - **Proxy API:** `next.config.js` reescribe `/api/:path*` → base interna (`INTERNAL_API_URL` o `NEXT_PUBLIC_API_URL` o `http://localhost:8000/api`) para evitar CORS en desarrollo y en Docker (servidor Next → `http://backend:8000/api`).
 - **Auth:** Login (`/login`) hace `POST /api/auth/login/` con body `{ login, password }`; guarda `access` y `refresh` en **localStorage** (`src/lib/auth.ts`). Cliente Axios (`src/lib/api.ts`) adjunta `Authorization: Bearer` y ante **401** intenta `POST /api/auth/token/refresh/`; si renueva, reintenta la solicitud original; si falla, limpia sesión y redirige a `/login`. Logout llama `POST /api/auth/logout/` con refresh cuando existe.
 - **Dashboard:** `layout.tsx` redirige a `/login` si no hay access token en cliente.

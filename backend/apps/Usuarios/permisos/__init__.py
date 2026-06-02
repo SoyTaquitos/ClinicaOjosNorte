@@ -1,1 +1,1 @@
-"""Alias lógico de `apps.permisos`."""
+# apps/permisos

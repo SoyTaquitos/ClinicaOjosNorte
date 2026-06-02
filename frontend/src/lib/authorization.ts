@@ -96,6 +96,7 @@ export function canViewRoute(me: MeProfile | null, href: string, permissionCodes
 
 export function canViewClinicalModule(me: MeProfile | null, module: ClinicalModule, permissionCodes?: Set<string>): boolean {
   if (!me) return false;
+  if (module === 'reportes' && me.tipo_usuario === 'MEDICO') return false;
   const byPermission = hasEffectivePermission(permissionCodes, module, 'view');
   if (byPermission != null) return byPermission;
   return CLINICAL_VIEW_ROLES_BY_MODULE[module].has(me.tipo_usuario);
